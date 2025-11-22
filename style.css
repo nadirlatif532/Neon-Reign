@@ -1929,6 +1929,7 @@ footer {
             padding: 20px;
             overflow-y: auto;
             color: var(--cp-black);
+            background: rgba(10, 10, 10, 0.5);
         }
 
         .tutorial-body h3 {
@@ -1961,7 +1962,6 @@ footer {
         .tutorial-body li {
             padding: 10px;
             margin: 8px 0;
-            background: rgba(0, 240, 255, 0.1);
             border-left: 3px solid var(--cp-cyan);
             line-height: 1.5;
         }
@@ -2009,6 +2009,8 @@ footer {
         /* Tutorial Panel Scrollbar */
         .tutorial-body::-webkit-scrollbar {
             width: 6px;
+            background: rgba(0, 0, 0, 0.5);
+
         }
 
         .tutorial-body::-webkit-scrollbar-track {
@@ -2016,12 +2018,13 @@ footer {
         }
 
         .tutorial-body::-webkit-scrollbar-thumb {
-            background: var(--cp-cyan);
+            background: rgba(0, 0, 0, 0.5);
+
             border-radius: 3px;
         }
 
         .tutorial-body::-webkit-scrollbar-thumb:hover {
-            background: var(--cp-yellow);
+            background: rgba(0, 0, 0, 0.5);
         }
     }
 }
