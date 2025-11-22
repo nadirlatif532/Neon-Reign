@@ -4,7 +4,14 @@ export class CityScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('city_bg_user', 'assets/city.jpg');
+        // Check if mobile
+        this.isMobile = this.scale.width <= 768;
+
+        if (this.isMobile) {
+            this.load.image('city_bg_user', 'assets/City-Mobile.jpg');
+        } else {
+            this.load.image('city_bg_user', 'assets/city.jpg');
+        }
         this.load.image('biker', 'assets/biker.png');
     }
 
@@ -12,10 +19,10 @@ export class CityScene extends Phaser.Scene {
         // 1. User City Background
         const bg = this.add.image(this.scale.width / 2, this.scale.height / 2, 'city_bg_user');
 
-        // Scale to FIT the screen
+        // Scale to FIT the screen (Cover mode)
         const scaleX = this.scale.width / bg.width;
         const scaleY = this.scale.height / bg.height;
-        const scale = Math.min(scaleX, scaleY);
+        const scale = Math.max(scaleX, scaleY); // Use max to cover
         bg.setScale(scale);
 
         // Animated Background Effects (reduced shake)
@@ -30,18 +37,28 @@ export class CityScene extends Phaser.Scene {
             loop: true
         });
 
-        // 2. Hit Zones (Adjusted positions)
-        // Ripperdoc (Left) - MOVED HIGHER
-        this.createHitZone(this.scale.width * 0.25, this.scale.height * 0.45, 120, 100, 'RIPPERDOC', 'ripperdoc', 0x00f0ff);
+        // 2. Hit Zones (Adjusted positions for Mobile vs Desktop)
+        if (this.isMobile) {
+            // Mobile Layout (Vertical Stack)
+            // Bar (Top)
+            this.createHitZone(this.scale.width * 0.5, this.scale.height * 0.25, 200, 120, 'AFTERLIFE', 'bar', 0xff003c);
 
-        // HQ (Center)
-        this.createHitZone(this.scale.width * 0.5, this.scale.height * 0.55, 150, 150, 'HIDEOUT', 'hideout', 0xfcee0a);
+            // HQ (Center)
+            this.createHitZone(this.scale.width * 0.5, this.scale.height * 0.5, 200, 150, 'HIDEOUT', 'hideout', 0xfcee0a);
 
-        // Bar (Right) - MOVED LOWER
-        this.createHitZone(this.scale.width * 0.75, this.scale.height * 0.70, 120, 100, 'AFTERLIFE', 'bar', 0xff003c);
+            // Ripperdoc (Bottom)
+            this.createHitZone(this.scale.width * 0.5, this.scale.height * 0.75, 200, 120, 'RIPPERDOC', 'ripperdoc', 0x00f0ff);
+        } else {
+            // Desktop Layout (Horizontal/Scattered)
+            // Ripperdoc (Left)
+            this.createHitZone(this.scale.width * 0.25, this.scale.height * 0.45, 120, 100, 'RIPPERDOC', 'ripperdoc', 0x00f0ff);
 
-        // Listen for mission start to spawn biker - REMOVED per user request
-        // window.addEventListener('mission-start', () => this.spawnBiker());
+            // HQ (Center)
+            this.createHitZone(this.scale.width * 0.5, this.scale.height * 0.55, 150, 150, 'HIDEOUT', 'hideout', 0xfcee0a);
+
+            // Bar (Right)
+            this.createHitZone(this.scale.width * 0.75, this.scale.height * 0.70, 120, 100, 'AFTERLIFE', 'bar', 0xff003c);
+        }
 
         // Floating text for mission completion
         window.addEventListener('mission-complete', (e) => this.showMissionReward(e.detail));
