@@ -1132,22 +1132,6 @@ footer {
 
 .attack-dialog h3 {
     color: var(--cp-red);
-    margin: 0 0 10px 0;
-    text-align: center;
-    text-shadow: 0 0 10px var(--cp-red);
-}
-
-.attack-dialog p {
-    color: #aaa;
-    text-align: center;
-    margin-bottom: 15px;
-    font-size: 0.85rem;
-}
-
-.member-selection {
-    max-height: 200px;
-    overflow-y: auto;
-    margin-bottom: 15px;
     padding: 10px;
     background: rgba(0, 0, 0, 0.5);
     border: 1px solid var(--cp-cyan);

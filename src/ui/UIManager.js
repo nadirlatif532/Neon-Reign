@@ -431,16 +431,24 @@ export class UIManager {
             return;
         }
 
+        // Get gang strength for calculation
+        const gang = this.gm.rivalGangManager.getGangByTerritory(territoryId);
+        const gangPower = gang.strength;
+
         // Create attack dialog
         const dialog = document.createElement('div');
         dialog.className = 'attack-dialog';
         dialog.innerHTML = `
             <h3>ATTACK ${territory.name}</h3>
-            <p>Select members to send (more members = higher success chance)</p>
+            <p>Target: ${gangName} (Strength: ${gangPower})</p>
+            <div class="success-chance-display">
+                <div class="chance-label">SUCCESS CHANCE:</div>
+                <div class="chance-value" id="success-chance">0%</div>
+            </div>
             <div class="member-selection">
                 ${availableMembers.map(m => `
                     <label class="member-checkbox">
-                        <input type="checkbox" value="${m.id}">
+                        <input type="checkbox" value="${m.id}" data-power="${(m.stats.cool * 2) + (m.stats.reflex * 2) + (m.level * 5)}">
                         <span>${m.name} (LVL ${m.level} - COOL:${m.stats.cool} REF:${m.stats.reflex})</span>
                     </label>
                 `).join('')}
@@ -452,6 +460,41 @@ export class UIManager {
         `;
 
         this.panelContent.appendChild(dialog);
+
+        // Function to calculate and update success chance
+        const updateSuccessChance = () => {
+            const selected = Array.from(dialog.querySelectorAll('input:checked'));
+            const playerPower = selected.reduce((sum, cb) => sum + parseInt(cb.dataset.power), 0);
+
+            // Calculate success chance (same formula as actual attack)
+            let successChance = 0;
+            if (playerPower > 0) {
+                // Add some randomness range to the calculation
+                const minChance = Math.min(100, Math.max(0, ((playerPower - 30) / gangPower) * 100));
+                const maxChance = Math.min(100, ((playerPower + 30) / gangPower) * 100);
+                successChance = Math.round((minChance + maxChance) / 2);
+            }
+
+            const chanceEl = dialog.querySelector('#success-chance');
+            chanceEl.textContent = `${successChance}%`;
+
+            // Color coding
+            if (successChance >= 70) {
+                chanceEl.style.color = 'var(--cp-cyan)';
+                chanceEl.style.textShadow = '0 0 10px var(--cp-cyan)';
+            } else if (successChance >= 40) {
+                chanceEl.style.color = 'var(--cp-yellow)';
+                chanceEl.style.textShadow = '0 0 10px var(--cp-yellow)';
+            } else {
+                chanceEl.style.color = 'var(--cp-red)';
+                chanceEl.style.textShadow = '0 0 10px var(--cp-red)';
+            }
+        };
+
+        // Add event listeners to all checkboxes
+        dialog.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', updateSuccessChance);
+        });
 
         dialog.querySelector('#confirm-attack').addEventListener('click', () => {
             const selected = Array.from(dialog.querySelectorAll('input:checked')).map(cb => cb.value);
