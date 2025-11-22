@@ -1928,7 +1928,7 @@ footer {
         .tutorial-body {
             padding: 20px;
             overflow-y: auto;
-            color: #fff;
+            color: var(--cp-black);
         }
 
         .tutorial-body h3 {
@@ -1949,6 +1949,7 @@ footer {
         .tutorial-body p {
             line-height: 1.6;
             margin: 10px 0;
+            color: var(--cp-black);
         }
 
         .tutorial-body ul {
