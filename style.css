@@ -509,39 +509,6 @@ main {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    animation: slideIn 0.3s ease-out forwards;
-    opacity: 0;
-    transition: all 0.3s;
-}
-
-.territory-card:hover {
-    border-color: var(--cp-yellow);
-    transform: translateX(5px);
-}
-
-.territory-card.controlled {
-    border-color: var(--cp-yellow);
-    background: rgba(252, 238, 10, 0.1);
-}
-
-.territory-name {
-    color: var(--cp-cyan);
-    font-weight: bold;
-    font-size: 1rem;
-}
-
-padding: 20px;
-}
-
-.recruitment-text {
-    font-size: 1.1rem;
-    color: var(--cp-cyan);
-    margin-bottom: 15px;
-}
-
-.recruitment-info {
-    display: flex;
-    justify-content: center;
     gap: 25px;
     margin-bottom: 25px;
 }
