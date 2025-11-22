@@ -20,9 +20,14 @@ export class CityScene extends Phaser.Scene {
         const bg = this.add.image(this.scale.width / 2, this.scale.height / 2, 'city_bg_user');
 
         // Scale to FIT the screen (Cover mode)
+        // Scale to FIT the screen
         const scaleX = this.scale.width / bg.width;
         const scaleY = this.scale.height / bg.height;
-        const scale = Math.max(scaleX, scaleY); // Use max to cover
+
+        // On mobile, use min to ensure the whole image is visible (zoom out)
+        // On desktop, use max to cover the screen
+        const scale = this.isMobile ? Math.min(scaleX, scaleY) : Math.max(scaleX, scaleY);
+
         bg.setScale(scale);
 
         // Animated Background Effects (reduced shake)
