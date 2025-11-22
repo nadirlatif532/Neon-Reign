@@ -23,6 +23,7 @@ export class UIManager {
 
         // Tutorial elements
         this.tutorialPanel = document.getElementById('tutorial-panel');
+        this.tutorialOverlay = document.getElementById('tutorial-overlay');
         this.helpBtn = document.getElementById('help-btn');
         this.tutorialCloseBtn = document.getElementById('tutorial-close-btn');
         this.tutorialOkBtn = document.getElementById('tutorial-ok-btn');
@@ -40,11 +41,21 @@ export class UIManager {
         this.tutorialCloseBtn.addEventListener('click', () => this.closeTutorial());
         this.tutorialOkBtn.addEventListener('click', () => this.closeTutorial());
 
-        // Prevent click-through on tutorial panel
+        // Close tutorial when clicking overlay
+        this.tutorialOverlay.addEventListener('click', () => {
+            this.closeTutorial();
+        });
+
+        // Prevent click-through on tutorial panel content (optional, but good safety)
         this.tutorialPanel.addEventListener('click', (e) => {
             if (e.target === this.tutorialPanel) {
-                // Allow clicking outside to close
-                this.closeTutorial();
+                // If clicking the wrapper (which is transparent now), close it?
+                // Since we have an overlay, the wrapper might cover the overlay.
+                // If the wrapper is pointer-events: none, clicks go to overlay.
+                // If wrapper is pointer-events: auto (default for flex container?), it blocks overlay.
+                // In CSS I set #tutorial-panel to pointer-events: none.
+                // So this listener might not even fire if clicking empty space.
+                // But .tutorial-content has pointer-events: auto.
             }
         });
 
@@ -110,11 +121,13 @@ export class UIManager {
 
     openTutorial() {
         this.tutorialPanel.style.display = 'flex';
+        this.tutorialOverlay.style.display = 'block';
         if (this.audio) this.audio.playPanelOpen();
     }
 
     closeTutorial() {
         this.tutorialPanel.style.display = 'none';
+        this.tutorialOverlay.style.display = 'none';
         if (this.audio) this.audio.playPanelClose();
     }
 

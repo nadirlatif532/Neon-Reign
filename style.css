@@ -1704,6 +1704,189 @@ footer {
             height: 35px;
             font-size: 1.2rem;
             font-weight: bold;
+            background: rgba(0, 0, 0, 0.5);
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--cp-cyan);
+            overflow: hidden;
+            display: none;
+            /* Hidden by default, shown in roster */
+        }
+
+        .biker-container {
+            position: absolute;
+            left: -100px;
+            bottom: 10px;
+            width: 100px;
+            height: 80px;
+        }
+
+        .biker-container.riding {
+            animation: rideAcross 3s linear forwards;
+        }
+
+        .biker-sprite {
+            height: 100%;
+            width: auto;
+            filter: drop-shadow(0 0 5px var(--cp-cyan));
+        }
+
+        @keyframes rideAcross {
+            0% {
+                left: -100px;
+            }
+
+            100% {
+                left: 100%;
+            }
+        }
+
+        /* --- Mobile Responsiveness --- */
+        @media (max-width: 768px) {
+            #ui-layer {
+                padding: 0;
+            }
+
+            header {
+                flex-direction: column;
+                align-items: center;
+                padding-bottom: 5px;
+                margin-bottom: 10px;
+                transform: none;
+                border-left: none;
+                border-bottom: 2px solid var(--cp-yellow);
+                background: rgba(5, 5, 5, 0.9);
+            }
+
+            .brand {
+                margin-left: 0;
+                margin-bottom: 10px;
+                font-size: 1.5rem;
+                transform: none;
+                text-align: center;
+            }
+
+            #resources {
+                margin-right: 0;
+                gap: 15px;
+                transform: none;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .resource {
+                font-size: 1rem;
+            }
+
+            #panel-container {
+                width: 95vw;
+                height: 85vh;
+                max-width: 95vw;
+                max-height: 85vh;
+                margin-top: 10px;
+            }
+
+            .panel-header {
+                padding: 10px;
+            }
+
+            #panel-title {
+                font-size: 1.2rem;
+            }
+
+            #panel-content {
+                padding: 10px;
+            }
+
+            .tabs {
+                overflow-x: auto;
+                white-space: nowrap;
+                padding-bottom: 5px;
+            }
+
+            .tab-btn {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+            }
+
+            /* Card Adjustments */
+            .member-card,
+            .territory-card,
+            .gang-card,
+            .mission-card {
+                padding: 10px;
+            }
+
+            .member-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+
+            .member-status {
+                align-self: flex-start;
+            }
+
+            .member-stats {
+                gap: 10px;
+                flex-wrap: wrap;
+            }
+
+            .territory-card {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+                text-align: center;
+            }
+
+            .territory-status {
+                display: flex;
+                justify-content: center;
+            }
+
+            /* Modal Adjustments */
+            .modal-content {
+                width: 95vw;
+                max-height: 90vh;
+                padding: 15px;
+            }
+
+            .crew-selection {
+                grid-template-columns: 1fr;
+                /* Stack crew cards */
+            }
+
+            .crew-member-card {
+                flex-direction: row;
+                align-items: center;
+            }
+
+            /* Footer */
+            footer {
+                padding: 5px;
+                font-size: 0.8rem;
+            }
+
+            #log-display {
+                font-size: 0.75rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+
+        /* Help Button */
+        #help-btn {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%) skewX(10deg);
+            background: var(--cp-cyan);
+            color: var(--cp-black);
+            border: 2px solid var(--cp-cyan);
+            width: 35px;
+            height: 35px;
+            font-size: 1.2rem;
+            font-weight: bold;
             cursor: pointer;
             transition: all 0.3s;
             box-shadow: 0 0 10px var(--cp-cyan);
@@ -1716,6 +1899,19 @@ footer {
             transform: translateY(-50%) skewX(10deg) scale(1.1);
         }
 
+        /* Tutorial Overlay */
+        #tutorial-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            pointer-events: auto;
+            animation: fadeIn 0.3s ease-out;
+        }
+
         /* Tutorial Panel */
         #tutorial-panel {
             position: fixed;
@@ -1723,31 +1919,7 @@ footer {
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            pointer-events: auto;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        .tutorial-content {
-            width: 600px;
-            max-width: 90vw;
-            max-height: 80vh;
-            background: var(--cp-bg);
-            border: 3px solid var(--cp-cyan);
-            box-shadow: 0 0 30px var(--cp-cyan), 10px 10px 0px var(--cp-yellow);
+            background: transparent;
             display: flex;
             flex-direction: column;
             animation: panelBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
