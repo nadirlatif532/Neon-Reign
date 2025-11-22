@@ -60,7 +60,7 @@ body {
     pointer-events: none;
     display: flex;
     flex-direction: column;
-    padding: 5px;
+    padding: 0px;
     box-sizing: border-box;
 }
 
@@ -74,7 +74,7 @@ header {
     align-items: center;
     border-bottom: 2px solid var(--cp-yellow);
     padding-bottom: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 0px;
     background: rgba(5, 5, 5, 0.7);
     transform: skewX(-10deg);
     border-left: 10px solid var(--cp-cyan);
