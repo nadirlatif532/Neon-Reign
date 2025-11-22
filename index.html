@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEON REIGN: Biker Tycoon</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+</head>
+
+<body>
+    <div class="scanlines"></div>
+    <div id="game-container"></div>
+
+    <div id="ui-layer">
+        <header>
+            <div class="brand">NEON REIGN</div>
+            <div id="resources">
+                <div class="resource" id="eddies-display">EDDIES: <span class="val">0</span></div>
+                <div class="resource" id="rep-display">REP: <span class="val">0</span></div>
+            </div>
+        </header>
+
+        <main>
+            <!-- Dynamic Panels will be injected here -->
+            <div id="panel-container" style="display: none;">
+                <div class="panel-header">
+                    <h2 id="panel-title">PANEL TITLE</h2>
+                    <button id="close-btn">X</button>
+                </div>
+                <div id="panel-content"></div>
+            </div>
+        </main>
+
+        <footer>
+            <div id="log-display">SYSTEM ONLINE...</div>
+        </footer>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+</body>
+
+</html>
