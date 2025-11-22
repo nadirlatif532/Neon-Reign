@@ -530,20 +530,7 @@ main {
     font-size: 1rem;
 }
 
-.territory-income {
-    color: var(--cp-yellow);
-    font-size: 0.85rem;
-}
-
-.status-controlled {
-    color: var(--cp-yellow);
-    font-weight: bold;
-}
-
-/* Recruitment Panel */
-.recruitment-panel {
-    text-align: center;
-    padding: 20px;
+padding: 20px;
 }
 
 .recruitment-text {
@@ -784,12 +771,12 @@ footer {
     }
 
     50% {
-        transform: translateY(-40px) scale(1.2);
+        transform: translateY(40px) scale(1.2);
         opacity: 1;
     }
 
     100% {
-        transform: translateY(-80px) scale(0.8);
+        transform: translateY(80px) scale(0.8);
         opacity: 0;
     }
 }

@@ -322,6 +322,9 @@ export class UIManager {
 
             const cost = t.income * 10;
 
+            // Check if controlled by rival gang
+            const rivalGang = t.rivalGang ? this.gm.rivalGangManager.getGangByTerritory(t.id) : null;
+
             div.innerHTML = `
                 <div class="territory-info">
                     <div class="territory-name">${t.name}</div>
@@ -330,12 +333,14 @@ export class UIManager {
                 <div class="territory-status">
                     ${t.controlled
                     ? '<span class="status-controlled">✓ CONTROLLED</span>'
-                    : `<button class="cyber-btn small-btn" data-id="${t.id}">CAPTURE (${cost}€)</button>`
+                    : rivalGang
+                        ? `<span class="status-rival">⚔ ${rivalGang.name}</span>`
+                        : `<button class="cyber-btn small-btn" data-id="${t.id}">CAPTURE (${cost}€)</button>`
                 }
                 </div>
             `;
 
-            if (!t.controlled) {
+            if (!t.controlled && !rivalGang) {
                 const btn = div.querySelector('button');
                 btn.addEventListener('click', () => {
                     if (this.gm.captureTerritory(t.id)) {

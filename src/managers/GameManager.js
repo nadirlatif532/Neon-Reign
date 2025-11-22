@@ -120,7 +120,7 @@ export class GameManager {
             if (member.health <= 0) {
                 member.health = 0;
                 member.injured = true;
-                member.status = 'INJURED';
+                // Don't change status - member stays IDLE but is injured
             }
         }
 
@@ -216,7 +216,8 @@ export class GameManager {
 
     captureTerritory(territoryId) {
         const territory = this.territories.find(t => t.id === territoryId);
-        if (territory && !territory.controlled) {
+        // Can only capture if not controlled by player AND not controlled by rival gang
+        if (territory && !territory.controlled && !territory.rivalGang) {
             const cost = territory.income * 10; // Cost is 10x the income
             if (this.eddies >= cost) {
                 this.addEddies(-cost);
