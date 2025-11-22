@@ -8,7 +8,7 @@ export class CityScene extends Phaser.Scene {
         this.isMobile = this.scale.width <= 768;
 
         if (this.isMobile) {
-            this.load.image('city_bg_user', 'assets/City-Mobile.jpg');
+            this.load.image('city_bg_user', 'assets/city_mb.png');
         } else {
             this.load.image('city_bg_user', 'assets/city.jpg');
         }
