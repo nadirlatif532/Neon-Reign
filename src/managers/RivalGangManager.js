@@ -103,12 +103,21 @@ export class RivalGangManager {
         if (!gang) return { success: false, message: 'Gang not found' };
 
         // Calculate player power
+        // Base power per member + stats + level bonus
         const playerPower = playerMembers.reduce((sum, m) => {
-            return sum + (m.stats.cool * 2) + (m.stats.reflex * 2) + (m.level * 5);
+            // Cool/Reflex give 2 power each. Level gives 5. Base 10.
+            // A level 1 member with 3/3 stats = 10 + 6 + 6 + 5 = 27 power.
+            // 3 members = ~81 power.
+            return sum + 10 + (m.stats.cool * 2) + (m.stats.reflex * 2) + (m.level * 5);
         }, 0);
 
         // Calculate gang defense power
-        const gangPower = gang.strength + (Math.random() * 30);
+        // Gang strength starts at 50.
+        // Random variance of +/- 10%.
+        const variance = (Math.random() * 0.2) + 0.9; // 0.9 to 1.1
+        const gangPower = Math.floor(gang.strength * variance);
+
+        console.log(`Battle: Player Power ${playerPower} vs Gang Power ${gangPower}`);
 
         // Battle outcome
         const success = playerPower > gangPower;
@@ -126,7 +135,8 @@ export class RivalGangManager {
                 return {
                     success: true,
                     message: `${territory.name} CAPTURED! ${gang.name} ELIMINATED!`,
-                    eliminated: true
+                    eliminated: true,
+                    loot: Math.floor(gangPower * 3) // Bonus loot for elimination
                 };
             }
 
@@ -137,18 +147,20 @@ export class RivalGangManager {
             };
         } else {
             // Player loses - members take damage
+            let casualties = 0;
             playerMembers.forEach(m => {
-                const damage = Math.floor(Math.random() * 20) + 10;
+                const damage = Math.floor(Math.random() * 30) + 10; // 10-40 damage
                 m.health = Math.max(0, m.health - damage);
                 if (m.health <= 0) {
                     m.injured = true;
+                    casualties++;
                 }
             });
 
             return {
                 success: false,
-                message: `ATTACK ON ${territory.name} FAILED! MEMBERS INJURED.`,
-                casualties: playerMembers.filter(m => m.injured).length
+                message: `ATTACK ON ${territory.name} FAILED! ${casualties} MEMBER(S) INJURED.`,
+                casualties: casualties
             };
         }
     }

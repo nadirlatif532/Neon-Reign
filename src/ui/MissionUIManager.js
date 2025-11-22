@@ -3,9 +3,14 @@ export class MissionUIManager {
         this.gm = gameManager;
         this.ui = uiManager;
         this.audio = uiManager.audio;
+        this.activeTimers = []; // Track active timer intervals for cleanup
     }
 
     render(container) {
+        // Clear all active timers before re-rendering
+        this.activeTimers.forEach(timerId => clearInterval(timerId));
+        this.activeTimers = [];
+
         container.innerHTML = ''; // Clear container to prevent duplication
 
         // Header
@@ -20,14 +25,22 @@ export class MissionUIManager {
         refreshBtn.innerHTML = 'REFRESH MISSIONS (50€)';
         refreshBtn.style.marginBottom = '15px';
         refreshBtn.addEventListener('click', () => {
-            if (this.gm.refreshMissions()) {
-                if (this.audio) this.audio.playClick();
-                this.ui.log('NEW MISSIONS AVAILABLE!', 'good');
-                this.render(container);
-            } else {
-                if (this.audio) this.audio.playError();
-                this.ui.log('INSUFFICIENT FUNDS.', 'bad');
-            }
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = 'REFRESHING...';
+
+            setTimeout(() => {
+                if (this.gm.refreshMissions()) {
+                    if (this.audio) this.audio.playClick();
+                    this.ui.log('NEW MISSIONS AVAILABLE!', 'good');
+                    // Render is called by notify(), but we can force it here too if needed
+                    // this.render(container); 
+                } else {
+                    if (this.audio) this.audio.playError();
+                    this.ui.log('INSUFFICIENT FUNDS.', 'bad');
+                }
+                refreshBtn.disabled = false;
+                refreshBtn.innerHTML = 'REFRESH MISSIONS (50€)';
+            }, 300); // Small fake delay for "feel"
         });
         container.appendChild(refreshBtn);
 
@@ -66,9 +79,19 @@ export class MissionUIManager {
 
                 // Update timer every second
                 const timerId = setInterval(() => {
+                    // Check if element is still in DOM
+                    if (!document.body.contains(activeCard)) {
+                        clearInterval(timerId);
+                        return;
+                    }
+
                     const newProgress = this.gm.getMissionProgress(member.id);
                     if (!newProgress) {
                         clearInterval(timerId);
+                        // Remove from active timers
+                        const index = this.activeTimers.indexOf(timerId);
+                        if (index > -1) this.activeTimers.splice(index, 1);
+
                         const timerEl = activeCard.querySelector('.mission-timer');
                         if (timerEl) timerEl.textContent = 'COMPLETED';
                         return;
@@ -80,6 +103,9 @@ export class MissionUIManager {
                         timerEl.textContent = `${newProgress.remainingSeconds}s remaining`;
                     }
                 }, 1000);
+
+                // Track this timer for cleanup
+                this.activeTimers.push(timerId);
             });
         }
 
@@ -127,6 +153,7 @@ export class MissionUIManager {
             container.appendChild(card);
         });
     }
+
 
     showMissionModal(mission) {
         // Create modal overlay
@@ -198,7 +225,13 @@ export class MissionUIManager {
         document.body.appendChild(modal);
 
         // Close button
-        modalContent.querySelector('.modal-close').onclick = () => modal.remove();
+        modalContent.querySelector('.modal-close').onclick = () => {
+            modal.remove();
+            // Refresh the mission list in case a mission was started or just to be safe
+            if (this.ui.activeTab === 'missions' && this.ui.activeTabContent) {
+                this.render(this.ui.activeTabContent);
+            }
+        };
 
         // Populate crew members
         const crewContainer = modalContent.querySelector('#crew-members');
@@ -227,18 +260,28 @@ export class MissionUIManager {
                         <span>REF: ${member.stats.reflex}</span>
                     </div>
                 </div>
-                ${qualified ? '<div class="member-check">✓</div>' : '<div class="member-unqualified">✗</div>'}
+                ${qualified
+                    ? '<div class="member-check-box" style="width: 30px; height: 30px; border: 2px solid var(--cp-cyan); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;"></div>'
+                    : '<div class="member-unqualified">✗</div>'}
             `;
 
             if (qualified) {
                 memberCard.onclick = () => {
                     const index = selectedMembers.indexOf(member.id);
+                    const checkBox = memberCard.querySelector('.member-check-box');
+
                     if (index > -1) {
                         selectedMembers.splice(index, 1);
                         memberCard.classList.remove('selected');
+                        checkBox.textContent = '';
+                        checkBox.style.backgroundColor = 'transparent';
+                        checkBox.style.color = 'inherit';
                     } else {
                         selectedMembers.push(member.id);
                         memberCard.classList.add('selected');
+                        checkBox.textContent = '✓';
+                        checkBox.style.backgroundColor = 'var(--cp-yellow)';
+                        checkBox.style.color = '#000';
                     }
 
                     // Update UI
@@ -254,32 +297,68 @@ export class MissionUIManager {
 
         // Send crew button
         const sendBtn = modalContent.querySelector('#send-crew-btn');
-        sendBtn.onclick = () => {
+        sendBtn.onclick = async () => {
             if (selectedMembers.length === 0) return;
 
-            // Send all selected members on the mission
-            let successCount = 0;
-            selectedMembers.forEach(memberId => {
-                const success = this.gm.startMission(memberId, mission.id);
-                if (success) successCount++;
-            });
+            try {
+                // Disable button and show feedback
+                sendBtn.disabled = true;
+                sendBtn.textContent = 'SENDING...';
+                sendBtn.style.opacity = '0.6';
 
-            if (successCount > 0) {
-                if (this.audio) this.audio.playClick();
-                this.ui.log(`${successCount} MEMBER(S) SENT ON ${mission.name}!`, 'good');
+                // Small delay to show "Sending..." state
+                await new Promise(resolve => setTimeout(resolve, 500));
 
-                // Trigger biker animation
-                this.ui.missionJustStarted = true;
+                // Send all selected members on the mission
+                let successCount = 0;
+                let failReason = '';
 
-                // Close modal and refresh missions
-                modal.remove();
-                if (this.ui.activeTab === 'missions' && this.ui.activeTabContent) {
-                    this.ui.activeTabContent.innerHTML = '';
-                    this.render(this.ui.activeTabContent);
+                selectedMembers.forEach(memberId => {
+                    const result = this.gm.startMission(memberId, mission.id);
+                    if (result && result.success) {
+                        successCount++;
+                    } else {
+                        failReason = result ? result.reason : 'Unknown error';
+                    }
+                });
+
+                if (successCount > 0) {
+                    // Remove the mission from available list now that crew is sent
+                    if (this.gm.removeMission) {
+                        this.gm.removeMission(mission.id);
+                    } else {
+                        console.error("GameManager.removeMission is missing!");
+                    }
+
+                    if (this.audio) this.audio.playClick();
+                    this.ui.log(`${successCount} MEMBER(S) SENT ON ${mission.name}!`, 'good');
+
+                    // Show success feedback - FORCE UPDATE
+                    sendBtn.textContent = 'SENT!';
+                    sendBtn.style.backgroundColor = 'var(--cp-green)';
+                    sendBtn.style.color = '#000';
+                    sendBtn.style.opacity = '1';
+
+                    // Trigger biker animation
+                    this.ui.missionJustStarted = true;
+
+                } else {
+                    if (this.audio) this.audio.playError();
+                    this.ui.log(`FAILED: ${failReason}`, 'bad');
+
+                    // Re-enable button on failure
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = 'SEND CREW';
+                    sendBtn.style.opacity = '1';
+                    sendBtn.style.backgroundColor = ''; // Reset
+                    sendBtn.style.color = ''; // Reset
                 }
-            } else {
-                if (this.audio) this.audio.playError();
-                this.ui.log('FAILED TO START MISSIONS!', 'bad');
+            } catch (err) {
+                console.error("Error in send button handler:", err);
+                this.ui.log(`ERROR: ${err.message}`, 'bad'); // Show error to user
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'ERROR';
+                setTimeout(() => sendBtn.textContent = 'SEND CREW', 2000);
             }
         };
     }

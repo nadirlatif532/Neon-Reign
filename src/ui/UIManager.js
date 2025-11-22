@@ -1,4 +1,5 @@
 import { MissionUIManager } from './MissionUIManager.js';
+import { AsciiGenerator } from '../utils/AsciiGenerator.js';
 
 export class UIManager {
     constructor(gameManager, audioManager) {
@@ -65,6 +66,20 @@ export class UIManager {
             this.log(e.detail.message, e.detail.type);
             if (e.detail.type === 'bad' && this.audio) this.audio.playError();
             if (e.detail.type === 'good' && this.audio) this.audio.playPurchase();
+        });
+
+        window.addEventListener('mission-start', (e) => {
+            const { member, mission } = e.detail;
+            // this.log(`${member.name} SENT ON ${mission.name}`, 'good'); // Optional: Log here if not handled by modal
+
+            // Auto-update roster if open
+            if (this.panelContainer.style.display === 'flex' && this.activeTab === 'roster') {
+                this.refreshRoster();
+            }
+            // Auto-update missions if open
+            if (this.panelContainer.style.display === 'flex' && this.activeTab === 'missions') {
+                this.missionUI.render(this.activeTabContent);
+            }
         });
 
         // Subscribe
@@ -265,18 +280,25 @@ export class UIManager {
             const card = document.createElement('div');
             card.className = 'member-card';
 
+
             let statusClass = 'status-idle';
             if (member.injured) statusClass = 'status-injured';
             else if (member.status === 'ON MISSION') statusClass = 'status-busy';
 
             card.innerHTML = `
                 <div class="member-header">
-                    <span class="member-name">${member.name}</span>
-                    <span class="member-level">LVL ${member.level}</span>
+                    <div class="member-info-top">
+                        <span class="member-name">${member.name}</span>
+                        <span class="member-level">LVL ${member.level}</span>
+                    </div>
                     <span class="member-status ${statusClass}">${member.injured ? 'INJURED' : (member.status === 'ON MISSION' ? 'ON MISSION' : 'IDLE')}</span>
                 </div>
-                <div class="member-role">${member.role}</div>
                 
+                ${member.art ? `<pre style="color: var(--cp-cyan); font-family: monospace; font-size: 8px; line-height: 8px; margin: 5px 0; text-align: center; overflow: hidden;">${member.art}</pre>` : ''}
+                
+                <div class="member-role">${member.role}</div>
+                ${member.description ? `<div style="color: #888; font-style: italic; font-size: 0.8rem; margin-bottom: 10px;">"${member.description}"</div>` : ''}
+
                 <div class="health-bar-container">
                     <div class="health-bar" style="width: ${(member.health / member.maxHealth) * 100}%"></div>
                     <div class="health-text">${member.health}/${member.maxHealth} HP</div>
@@ -300,10 +322,24 @@ export class UIManager {
                 timer.textContent = 'MISSION IN PROGRESS...';
                 card.appendChild(timer);
             } else if (member.injured) {
-                const notice = document.createElement('div');
-                notice.className = 'injured-notice';
-                notice.textContent = 'NEEDS MEDICAL ATTENTION';
-                card.appendChild(notice);
+                const healBtn = document.createElement('button');
+                healBtn.className = 'cyber-btn small-btn';
+                healBtn.style.width = '100%';
+                healBtn.style.marginTop = '10px';
+                healBtn.style.backgroundColor = 'var(--cp-red)';
+                healBtn.textContent = 'HEAL (100€)';
+
+                healBtn.onclick = () => {
+                    if (this.gm.healMember(member.id)) {
+                        if (this.audio) this.audio.playPurchase();
+                        this.log(`${member.name} HEALED!`, 'good');
+                        // Roster will auto-refresh via event listener
+                    } else {
+                        if (this.audio) this.audio.playError();
+                        this.log('INSUFFICIENT FUNDS.', 'bad');
+                    }
+                };
+                card.appendChild(healBtn);
             }
 
             container.appendChild(card);
@@ -400,12 +436,12 @@ export class UIManager {
                 territoryDiv.className = 'rival-territory-card';
 
                 territoryDiv.innerHTML = `
-                    <div class="territory-info">
+                <div class="territory-info">
                         <div class="territory-name">${t.name}</div>
                         <div class="territory-income">+${t.income}€ / 10s</div>
                     </div>
-                    <button class="cyber-btn small-btn attack-btn" data-id="${t.id}">ATTACK</button>
-                `;
+                <button class="cyber-btn small-btn attack-btn" data-id="${t.id}">ATTACK</button>
+            `;
 
                 const attackBtn = territoryDiv.querySelector('.attack-btn');
                 attackBtn.addEventListener('click', () => {
@@ -451,7 +487,7 @@ export class UIManager {
             <div class="member-selection">
                 ${availableMembers.map(m => `
                     <label class="member-checkbox">
-                        <input type="checkbox" value="${m.id}" data-power="${(m.stats.cool * 2) + (m.stats.reflex * 2) + (m.level * 5)}">
+                        <input type="checkbox" value="${m.id}" data-power="${10 + (m.stats.cool * 2) + (m.stats.reflex * 2) + (m.level * 5)}">
                         <span>${m.name} (LVL ${m.level} - COOL:${m.stats.cool} REF:${m.stats.reflex})</span>
                     </label>
                 `).join('')}
@@ -469,29 +505,33 @@ export class UIManager {
             const selected = Array.from(dialog.querySelectorAll('input:checked'));
             const playerPower = selected.reduce((sum, cb) => sum + parseInt(cb.dataset.power), 0);
 
-            // Calculate success chance (same formula as actual attack)
+            // Calculate success chance using a gradual curve
             let successChance = 0;
             if (playerPower > 0) {
-                // Add some randomness range to the calculation
-                const minChance = Math.min(100, Math.max(0, ((playerPower - 30) / gangPower) * 100));
-                const maxChance = Math.min(100, ((playerPower + 30) / gangPower) * 100);
-                successChance = Math.round((minChance + maxChance) / 2);
+                // Use a ratio-based calculation for smoother progression
+                // 50% chance when equal power, scales from 0-100% based on ratio
+                const ratio = playerPower / gangPower;
+
+                if (ratio >= 1.5) {
+                    // Overwhelming force = 100%
+                    successChance = 100;
+                } else if (ratio <= 0.5) {
+                    // Too weak = 0%
+                    successChance = 0;
+                } else {
+                    // Gradual scale between 0.5x and 1.5x power
+                    // Maps 0.5-1.5 ratio to 0-100%
+                    successChance = Math.round(((ratio - 0.5) / 1.0) * 100);
+                }
             }
 
             const chanceEl = dialog.querySelector('#success-chance');
             chanceEl.textContent = `${successChance}%`;
 
-            // Color coding
-            if (successChance >= 70) {
-                chanceEl.style.color = 'var(--cp-cyan)';
-                chanceEl.style.textShadow = '0 0 10px var(--cp-cyan)';
-            } else if (successChance >= 40) {
-                chanceEl.style.color = 'var(--cp-yellow)';
-                chanceEl.style.textShadow = '0 0 10px var(--cp-yellow)';
-            } else {
-                chanceEl.style.color = 'var(--cp-red)';
-                chanceEl.style.textShadow = '0 0 10px var(--cp-red)';
-            }
+            // Color code the chance
+            if (successChance >= 80) chanceEl.style.color = 'var(--cp-green)';
+            else if (successChance >= 50) chanceEl.style.color = 'var(--cp-yellow)';
+            else chanceEl.style.color = 'var(--cp-red)';
         };
 
         // Add event listeners to all checkboxes
@@ -499,8 +539,11 @@ export class UIManager {
             cb.addEventListener('change', updateSuccessChance);
         });
 
+        // Initialize chance display
+        updateSuccessChance();
+
         dialog.querySelector('#confirm-attack').addEventListener('click', () => {
-            const selected = Array.from(dialog.querySelectorAll('input:checked')).map(cb => cb.value);
+            const selected = Array.from(dialog.querySelectorAll('input:checked')).map(cb => parseInt(cb.value));
 
             if (selected.length === 0) {
                 this.log('SELECT AT LEAST ONE MEMBER!', 'bad');
@@ -598,7 +641,7 @@ export class UIManager {
                     const upgradeType = btn.dataset.type;
                     if (this.gm.upgradeMember(m.id, upgradeType)) {
                         if (this.audio) this.audio.playUpgrade();
-                        this.log(`${m.name} UPGRADED: ${upgradeType.toUpperCase()}`, 'good');
+                        this.log(`${m.name} UPGRADED: ${upgradeType.toUpperCase()} `, 'good');
                         this.renderRipperdoc();
                     } else {
                         if (this.audio) this.audio.playError();
@@ -612,34 +655,56 @@ export class UIManager {
     }
 
     renderRecruitment() {
+        // Clear previous content to allow refreshing
+        this.panelContent.innerHTML = '';
+
+        // Generate a random recruit
+        const recruit = AsciiGenerator.generatePortrait();
+
         const div = document.createElement('div');
         div.className = 'recruitment-panel';
+        div.style.display = 'flex';
+        div.style.flexDirection = 'column';
+        div.style.alignItems = 'center';
+        div.style.textAlign = 'center';
+
         div.innerHTML = `
-            <p class="recruitment-text">LOOKING FOR EDGERUNNERS?</p>
-            <div class="recruitment-info">
+            <p class="recruitment-text">INCOMING TRANSMISSION...</p>
+            <pre style="color: var(--cp-cyan); font-family: monospace; font-size: 12px; line-height: 10px; margin: 10px 0; text-shadow: 0 0 5px var(--cp-cyan);">${recruit.art}</pre>
+            <h3 style="color: var(--cp-yellow); margin: 5px 0;">${recruit.name}</h3>
+            <p style="color: #fff; font-style: italic; margin-bottom: 15px; font-size: 0.9rem;">"${recruit.description}"</p>
+            
+            <div class="recruitment-info" style="margin-bottom: 20px; display: flex; flex-direction: row; gap: 15px; justify-content: center; width: 100%;">
                 <div class="info-item">💰 Cost: 500 Eddies</div>
-                <div class="info-item">📊 Random Stats</div>
+                <div class="info-item">📊 Class: Solo</div>
                 <div class="info-item">⭐ Level 1</div>
             </div>
-            <button class="cyber-btn recruit-btn" id="recruit-btn">HIRE MERC</button>
+            <button class="cyber-btn recruit-btn" id="recruit-btn" style="margin: 0 auto;">HIRE MERC</button>
         `;
         this.panelContent.appendChild(div);
 
-        div.querySelector('#recruit-btn').addEventListener('click', (event) => {
-            event.stopPropagation(); // Prevent click-through to HQ zone
+        // Use helper method for consistent event handling
+        const btn = div.querySelector('#recruit-btn');
+        this.attachRecruitHandler(btn, recruit);
+    }
+
+    attachRecruitHandler(btn, recruit) {
+        btn.addEventListener('click', (event) => {
+            event.stopPropagation();
+
             if (this.gm.eddies >= 500) {
                 if (this.audio) this.audio.playPurchase();
                 this.gm.addEddies(-500);
-                const name = 'Merc-' + Math.floor(Math.random() * 1000);
-                this.gm.recruitMember(name, 'Solo');
-                this.log(`${name} HIRED.`, 'good');
+                this.gm.recruitMember(recruit.name, 'Solo', recruit.description, recruit.art);
+                this.log(`${recruit.name} HIRED.`, 'good');
 
-                // Flash effect and refresh
-                div.querySelector('#recruit-btn').classList.add('btn-flash');
-                setTimeout(() => {
-                    this.closePanel();
-                    setTimeout(() => this.openPanel('hideout'), 100);
-                }, 500);
+                // Visual feedback
+                btn.disabled = true;
+                btn.textContent = 'HIRED!';
+                btn.style.backgroundColor = 'var(--cp-green)';
+                btn.style.color = '#000';
+
+                // Do not close panel automatically, user must close it or switch tabs
             } else {
                 if (this.audio) this.audio.playError();
                 this.log('INSUFFICIENT FUNDS.', 'bad');
@@ -650,7 +715,7 @@ export class UIManager {
     log(msg, type = 'neutral') {
         this.logEl.textContent = `> ${msg}`;
         this.logEl.className = ''; // Reset classes
-        this.logEl.classList.add(`log-${type}`);
+        this.logEl.classList.add(`log - ${type}`);
         this.logEl.classList.add('glitch');
         setTimeout(() => this.logEl.classList.remove('glitch'), 500);
     }
