@@ -247,12 +247,12 @@ export class UIManager {
             </div>
         `;
 
-        // Check if we should trigger the animation
-        if (this.missionJustStarted) {
-            const container = bikerSection.querySelector('.biker-container');
-            container.classList.add('riding');
-            this.missionJustStarted = false; // Reset flag
-        }
+        // Always trigger the animation when roster is opened
+        const animContainer = bikerSection.querySelector('.biker-container');
+        // Use setTimeout to ensure the class is added after render for animation to trigger
+        setTimeout(() => {
+            animContainer.classList.add('riding');
+        }, 50);
 
         container.appendChild(bikerSection);
 
