@@ -21,6 +21,12 @@ export class UIManager {
         this.closeBtn = document.getElementById('close-btn');
         this.logEl = document.getElementById('log-display');
 
+        // Tutorial elements
+        this.tutorialPanel = document.getElementById('tutorial-panel');
+        this.helpBtn = document.getElementById('help-btn');
+        this.tutorialCloseBtn = document.getElementById('tutorial-close-btn');
+        this.tutorialOkBtn = document.getElementById('tutorial-ok-btn');
+
         // Prevent click-through on panel
         this.panelContainer.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -28,6 +34,19 @@ export class UIManager {
 
         // Events
         this.closeBtn.addEventListener('click', () => this.closePanel());
+
+        // Tutorial events
+        this.helpBtn.addEventListener('click', () => this.openTutorial());
+        this.tutorialCloseBtn.addEventListener('click', () => this.closeTutorial());
+        this.tutorialOkBtn.addEventListener('click', () => this.closeTutorial());
+
+        // Prevent click-through on tutorial panel
+        this.tutorialPanel.addEventListener('click', (e) => {
+            if (e.target === this.tutorialPanel) {
+                // Allow clicking outside to close
+                this.closeTutorial();
+            }
+        });
 
         window.addEventListener('building-click', (e) => {
             // Block interaction if panel is already open
@@ -84,6 +103,19 @@ export class UIManager {
 
         // Subscribe
         this.gm.subscribe((state) => this.render(state));
+
+        // Show tutorial on first load
+        setTimeout(() => this.openTutorial(), 500);
+    }
+
+    openTutorial() {
+        this.tutorialPanel.style.display = 'flex';
+        if (this.audio) this.audio.playPanelOpen();
+    }
+
+    closeTutorial() {
+        this.tutorialPanel.style.display = 'none';
+        if (this.audio) this.audio.playPanelClose();
     }
 
     render(state) {

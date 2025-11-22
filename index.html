@@ -8,7 +8,17 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="mission-modal.css">
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-</head>
+    <!DOCTYPE html>
+    <html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>NEON REIGN: Biker Tycoon</title>
+        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="mission-modal.css">
+        <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    </head>
 
 <body>
     <div class="scanlines"></div>
@@ -21,6 +31,7 @@
                 <div class="resource" id="eddies-display">EDDIES: <span class="val">0</span></div>
                 <div class="resource" id="rep-display">REP: <span class="val">0</span></div>
             </div>
+            <button id="help-btn" class="cyber-btn small-btn">?</button>
         </header>
 
         <main>
@@ -31,6 +42,36 @@
                     <button id="close-btn">X</button>
                 </div>
                 <div id="panel-content"></div>
+            </div>
+
+            <!-- Tutorial Panel -->
+            <div id="tutorial-panel" style="display: none;">
+                <div class="tutorial-content">
+                    <div class="panel-header">
+                        <h2>SYSTEM MANUAL</h2>
+                        <button id="tutorial-close-btn">X</button>
+                    </div>
+                    <div class="tutorial-body">
+                        <h3>WELCOME TO NIGHT CITY, BOSS.</h3>
+                        <p>Your goal is to become the most powerful gang in the city.</p>
+
+                        <h4>CORE MECHANICS:</h4>
+                        <ul>
+                            <li><strong>RECRUIT:</strong> Visit <span class="highlight">THE AFTERLIFE</span> (Bar) to
+                                hire new members.</li>
+                            <li><strong>MISSIONS:</strong> Send members on missions from <span class="highlight">GANG
+                                    HQ</span> to earn Eddies & XP.</li>
+                            <li><strong>TERRITORY:</strong> Capture districts to earn passive income. Defend them from
+                                rivals!</li>
+                            <li><strong>HEAL & UPGRADE:</strong> Visit the <span class="highlight">RIPPERDOC</span> to
+                                heal injuries and install cyberware.</li>
+                        </ul>
+
+                        <p class="tip">TIP: Keep your members healthy. If they die, they're gone for good.</p>
+
+                        <button id="tutorial-ok-btn" class="cyber-btn">UNDERSTOOD</button>
+                    </div>
+                </div>
             </div>
         </main>
 
