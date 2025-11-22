@@ -243,6 +243,24 @@ export class MissionUIManager {
             return;
         }
 
+        // Helper to update duration display
+        const updateDurationDisplay = () => {
+            const count = selectedMembers.length;
+            const discount = Math.min(0.5, Math.max(0, (count - 1) * 0.1)); // 0% for 1, 10% for 2, etc. Max 50%
+            const newDuration = Math.floor(mission.duration * (1 - discount));
+            const newDurationSec = Math.ceil(newDuration / 1000);
+
+            const durationValueEl = modalContent.querySelector('.info-item:nth-child(4) .info-value');
+            if (durationValueEl) {
+                if (discount > 0) {
+                    durationValueEl.innerHTML = `⏱ <span style="text-decoration: line-through; color: #888;">${durationSec}s</span> <span style="color: var(--cp-green);">${newDurationSec}s (-${Math.round(discount * 100)}%)</span>`;
+                } else {
+                    durationValueEl.textContent = `⏱ ${durationSec}s`;
+                }
+            }
+            return newDuration;
+        };
+
         availableMembers.forEach(member => {
             const qualified = this.gm.memberMeetsMissionRequirements(member.id, mission.id);
 
@@ -289,6 +307,9 @@ export class MissionUIManager {
                     const sendBtn = modalContent.querySelector('#send-crew-btn');
                     countEl.textContent = `${selectedMembers.length} SELECTED`;
                     sendBtn.disabled = selectedMembers.length === 0;
+
+                    // Update duration
+                    updateDurationDisplay();
                 };
             }
 
@@ -309,12 +330,16 @@ export class MissionUIManager {
                 // Small delay to show "Sending..." state
                 await new Promise(resolve => setTimeout(resolve, 500));
 
+                // Calculate final duration
+                const finalDuration = updateDurationDisplay();
+
                 // Send all selected members on the mission
                 let successCount = 0;
                 let failReason = '';
 
                 selectedMembers.forEach(memberId => {
-                    const result = this.gm.startMission(memberId, mission.id);
+                    // Pass the calculated duration override
+                    const result = this.gm.startMission(memberId, mission.id, finalDuration);
                     if (result && result.success) {
                         successCount++;
                     } else {

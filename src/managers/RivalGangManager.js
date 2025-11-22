@@ -95,6 +95,45 @@ export class RivalGangManager {
         }));
     }
 
+    attemptRetaliation() {
+        // Find player controlled territories
+        const playerTerritories = this.gm.territories.filter(t => t.controlled);
+        if (playerTerritories.length === 0) return;
+
+        // Pick a random target
+        const target = playerTerritories[Math.floor(Math.random() * playerTerritories.length)];
+
+        // Pick a random gang to attack
+        const attacker = this.gangs[Math.floor(Math.random() * this.gangs.length)];
+        if (!attacker) return;
+
+        // Calculate chance (30% base + aggression factor)
+        const chance = 0.3 + (attacker.aggression * 0.2);
+
+        if (Math.random() < chance) {
+            // Attack successful!
+            target.controlled = false;
+            target.rivalGang = attacker.id;
+            attacker.territories.push(target.id);
+
+            // Buff the territory (High Risk, High Reward)
+            target.income = Math.floor(target.income * 1.2); // +20% income
+
+            // Buff the gang's hold on this territory
+            this.updateGangStrength(attacker);
+            attacker.strength += 20; // Harder to take back
+
+            this.gm.notify();
+
+            window.dispatchEvent(new CustomEvent('game-event', {
+                detail: {
+                    message: `⚠ ${attacker.name} RETOOK ${target.name}! IT IS NOW HEAVILY FORTIFIED!`,
+                    type: 'bad'
+                }
+            }));
+        }
+    }
+
     attackTerritory(territoryId, playerMembers) {
         const territory = this.gm.territories.find(t => t.id === territoryId);
         if (!territory || !territory.rivalGang) return { success: false, message: 'Invalid target' };

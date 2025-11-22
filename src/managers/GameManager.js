@@ -80,6 +80,13 @@ export class GameManager {
                 this.addMission();
             }
         }, 10000);
+
+        // Periodic Gang Retaliation (Every 45 seconds)
+        setInterval(() => {
+            if (this.rivalGangManager) {
+                this.rivalGangManager.attemptRetaliation();
+            }
+        }, 45000);
     }
 
     subscribe(callback) {
@@ -129,7 +136,7 @@ export class GameManager {
         this.notify();
     }
 
-    startMission(memberId, missionId) {
+    startMission(memberId, missionId, durationOverride = null) {
         try {
             console.log(`Attempting to start mission. Member: ${memberId}, Mission: ${missionId}`);
             const member = this.members.find(m => m.id === memberId);
@@ -160,13 +167,16 @@ export class GameManager {
             member.status = 'ON MISSION';
             member.currentMission = mission.name;
 
+            // Use override if provided, otherwise default
+            const finalDuration = durationOverride !== null ? durationOverride : mission.duration;
+
             // Add to active missions
             const activeMission = {
                 id: Date.now() + Math.random(), // Unique ID for this active instance
                 memberId: member.id,
                 mission: mission,
                 startTime: Date.now(),
-                endTime: Date.now() + mission.duration
+                endTime: Date.now() + finalDuration
             };
             this.activeMissions.push(activeMission);
 
@@ -178,7 +188,7 @@ export class GameManager {
             // Mission completes after duration
             setTimeout(() => {
                 this.completeMission(member, mission, activeMission.id);
-            }, mission.duration);
+            }, finalDuration);
 
             return { success: true };
         } catch (error) {
