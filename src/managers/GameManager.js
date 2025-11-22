@@ -1,4 +1,5 @@
 import { EventManager } from './EventManager.js';
+import { RivalGangManager } from './RivalGangManager.js';
 
 export class GameManager {
     constructor() {
@@ -23,6 +24,10 @@ export class GameManager {
         // Event System
         this.eventManager = new EventManager(this);
         this.eventManager.start();
+
+        // Rival Gang System
+        this.rivalGangManager = new RivalGangManager(this);
+        this.rivalGangManager.initialize();
 
         this.globalRewardMultiplier = 1;
     }
@@ -251,4 +256,30 @@ export class GameManager {
             }));
         }, duration);
     }
+
+    attackTerritory(territoryId, memberIds) {
+        // Get members for the attack
+        const attackers = this.members.filter(m => memberIds.includes(m.id));
+
+        // Check if all members are available
+        const unavailable = attackers.filter(m => m.status !== 'IDLE' || m.injured);
+        if (unavailable.length > 0) {
+            return { success: false, message: 'Some members are unavailable!' };
+        }
+
+        // Perform the attack
+        const result = this.rivalGangManager.attackTerritory(territoryId, attackers);
+
+        // Update state
+        this.notify();
+
+        // Award loot if successful
+        if (result.success && result.loot) {
+            this.addEddies(result.loot);
+            this.addRep(10);
+        }
+
+        return result;
+    }
 }
+

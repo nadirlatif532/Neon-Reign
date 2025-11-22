@@ -72,6 +72,9 @@ export class UIManager {
         const oldValue = parseInt(element.textContent) || 0;
         if (oldValue === newValue) return;
 
+        const isIncrease = newValue > oldValue;
+        const diff = newValue - oldValue;
+
         const duration = 500;
         const steps = 20;
         const increment = (newValue - oldValue) / steps;
@@ -90,8 +93,55 @@ export class UIManager {
                 // Pulse effect on change
                 element.parentElement.classList.add('pulse');
                 setTimeout(() => element.parentElement.classList.remove('pulse'), 300);
+
+                // Floating indicator for eddies increase
+                if (isIncrease && element === this.eddiesEl) {
+                    this.showFloatingEddies(diff);
+                }
             }
         }, duration / steps);
+    }
+
+    showFloatingEddies(amount) {
+        const indicator = document.createElement('div');
+        indicator.className = 'floating-eddies';
+        indicator.textContent = `+${amount}€`;
+
+        // Position near the eddies display
+        const eddiesDisplay = document.getElementById('eddies-display');
+        const rect = eddiesDisplay.getBoundingClientRect();
+
+        indicator.style.left = `${rect.left + rect.width / 2}px`;
+        indicator.style.top = `${rect.top}px`;
+
+        document.body.appendChild(indicator);
+
+        // Add sparkle effect
+        this.createSparkles(rect.left + rect.width / 2, rect.top + rect.height / 2);
+
+        // Remove after animation
+        setTimeout(() => {
+            indicator.remove();
+        }, 2000);
+    }
+
+    createSparkles(x, y) {
+        for (let i = 0; i < 5; i++) {
+            const sparkle = document.createElement('div');
+            sparkle.className = 'sparkle';
+            sparkle.style.left = `${x}px`;
+            sparkle.style.top = `${y}px`;
+
+            // Random offset for each sparkle
+            const offsetX = (Math.random() - 0.5) * 40;
+            const offsetY = (Math.random() - 0.5) * 40;
+            sparkle.style.setProperty('--offset-x', `${offsetX}px`);
+            sparkle.style.setProperty('--offset-y', `${offsetY}px`);
+
+            document.body.appendChild(sparkle);
+
+            setTimeout(() => sparkle.remove(), 1000);
+        }
     }
 
     openPanel(type) {
@@ -127,6 +177,7 @@ export class UIManager {
         tabs.innerHTML = `
             <button class="tab-btn active" data-tab="roster">ROSTER</button>
             <button class="tab-btn" data-tab="territory">TERRITORY</button>
+            <button class="tab-btn" data-tab="gangs">GANGS</button>
         `;
         this.panelContent.appendChild(tabs);
 
@@ -148,10 +199,14 @@ export class UIManager {
                     this.activeTab = 'roster';
                     tabContent.innerHTML = '';
                     this.renderRoster(tabContent);
-                } else {
+                } else if (btn.dataset.tab === 'territory') {
                     this.activeTab = 'territory';
                     tabContent.innerHTML = '';
                     this.renderTerritory(tabContent);
+                } else if (btn.dataset.tab === 'gangs') {
+                    this.activeTab = 'gangs';
+                    tabContent.innerHTML = '';
+                    this.renderGangs(tabContent);
                 }
             });
         });
@@ -299,7 +354,135 @@ export class UIManager {
         });
     }
 
+    renderGangs(container) {
+        const header = document.createElement('div');
+        header.className = 'territory-header';
+        header.innerHTML = `<h3>RIVAL GANGS</h3><p>Attack rival territories to expand your empire</p>`;
+        container.appendChild(header);
+
+        const gangs = this.gm.rivalGangManager.getGangInfo();
+        const territories = this.gm.territories;
+
+        gangs.forEach((gang, index) => {
+            const gangCard = document.createElement('div');
+            gangCard.className = 'gang-card';
+            gangCard.style.animationDelay = `${index * 0.1}s`;
+
+            gangCard.innerHTML = `
+                <div class="gang-header">
+                    <div class="gang-name">${gang.name}</div>
+                    <div class="gang-stats">
+                        <span class="gang-strength">⚔ ${gang.strength}</span>
+                        <span class="gang-territories">🏴 ${gang.territories} territories</span>
+                    </div>
+                </div>
+                <div class="gang-personality">[${gang.personality.toUpperCase()}]</div>
+            `;
+
+            container.appendChild(gangCard);
+
+            // Show territories controlled by this gang
+            const gangTerritories = territories.filter(t => {
+                const gangObj = this.gm.rivalGangManager.getGangByTerritory(t.id);
+                return gangObj && gangObj.name === gang.name;
+            });
+
+            gangTerritories.forEach(t => {
+                const territoryDiv = document.createElement('div');
+                territoryDiv.className = 'rival-territory-card';
+
+                territoryDiv.innerHTML = `
+                    <div class="territory-info">
+                        <div class="territory-name">${t.name}</div>
+                        <div class="territory-income">+${t.income}€ / 10s</div>
+                    </div>
+                    <button class="cyber-btn small-btn attack-btn" data-id="${t.id}">ATTACK</button>
+                `;
+
+                const attackBtn = territoryDiv.querySelector('.attack-btn');
+                attackBtn.addEventListener('click', () => {
+                    this.showAttackDialog(t.id, gang.name);
+                });
+
+                container.appendChild(territoryDiv);
+            });
+        });
+
+        if (gangs.length === 0) {
+            const notice = document.createElement('div');
+            notice.className = 'recruitment-text';
+            notice.textContent = 'NO RIVAL GANGS REMAIN. YOU CONTROL NIGHT CITY!';
+            container.appendChild(notice);
+        }
+    }
+
+    showAttackDialog(territoryId, gangName) {
+        const territory = this.gm.territories.find(t => t.id === territoryId);
+        const availableMembers = this.gm.members.filter(m => m.status === 'IDLE' && !m.injured);
+
+        if (availableMembers.length === 0) {
+            this.log('NO AVAILABLE MEMBERS FOR ATTACK!', 'bad');
+            if (this.audio) this.audio.playError();
+            return;
+        }
+
+        // Create attack dialog
+        const dialog = document.createElement('div');
+        dialog.className = 'attack-dialog';
+        dialog.innerHTML = `
+            <h3>ATTACK ${territory.name}</h3>
+            <p>Select members to send (more members = higher success chance)</p>
+            <div class="member-selection">
+                ${availableMembers.map(m => `
+                    <label class="member-checkbox">
+                        <input type="checkbox" value="${m.id}">
+                        <span>${m.name} (LVL ${m.level} - COOL:${m.stats.cool} REF:${m.stats.reflex})</span>
+                    </label>
+                `).join('')}
+            </div>
+            <div class="dialog-buttons">
+                <button class="cyber-btn" id="confirm-attack">ATTACK</button>
+                <button class="cyber-btn" id="cancel-attack">CANCEL</button>
+            </div>
+        `;
+
+        this.panelContent.appendChild(dialog);
+
+        dialog.querySelector('#confirm-attack').addEventListener('click', () => {
+            const selected = Array.from(dialog.querySelectorAll('input:checked')).map(cb => cb.value);
+
+            if (selected.length === 0) {
+                this.log('SELECT AT LEAST ONE MEMBER!', 'bad');
+                if (this.audio) this.audio.playError();
+                return;
+            }
+
+            const result = this.gm.attackTerritory(territoryId, selected);
+
+            if (result.success) {
+                this.log(result.message, 'good');
+                if (this.audio) this.audio.playPurchase();
+                if (result.loot) {
+                    this.log(`LOOTED ${result.loot}€ FROM ${gangName}!`, 'good');
+                }
+            } else {
+                this.log(result.message, 'bad');
+                if (this.audio) this.audio.playError();
+            }
+
+            dialog.remove();
+            this.openPanel('hideout'); // Refresh the panel
+        });
+
+        dialog.querySelector('#cancel-attack').addEventListener('click', () => {
+            dialog.remove();
+        });
+    }
+
     renderRipperdoc() {
+        // Clear existing content to prevent stacking
+        this.panelContent.innerHTML = '';
+
         const members = this.gm.members;
 
         const header = document.createElement('div');

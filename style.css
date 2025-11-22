@@ -756,8 +756,6 @@ footer {
 }
 
 .upgrade-section h4 {
-    color: var(--cp-cyan);
-    margin: 0 0 8px 0;
     font-size: 0.85rem;
 }
 
@@ -765,4 +763,439 @@ footer {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+}
+
+/* Floating Eddies Animation */
+.floating-eddies {
+    position: fixed;
+    color: var(--cp-yellow);
+    font-size: 1.5rem;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 10000;
+    text-shadow: 0 0 10px var(--cp-yellow), 0 0 20px var(--cp-yellow);
+    animation: floatUp 2s ease-out forwards;
+}
+
+@keyframes floatUp {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: translateY(-40px) scale(1.2);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(-80px) scale(0.8);
+        opacity: 0;
+    }
+}
+
+/* Sparkle Effect */
+.sparkle {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    background: var(--cp-cyan);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10000;
+    box-shadow: 0 0 10px var(--cp-cyan);
+    animation: sparkleFloat 1s ease-out forwards;
+}
+
+@keyframes sparkleFloat {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(var(--offset-x), var(--offset-y)) scale(0);
+        opacity: 0;
+    }
+}
+
+/* Enhanced Panel Animations */
+@keyframes panelBounce {
+    0% {
+        transform: translateY(50px) scale(0.9);
+        opacity: 0;
+    }
+
+    60% {
+        transform: translateY(-10px) scale(1.02);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+#panel-container {
+    animation: panelBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Log message types */
+.log-good {
+    color: var(--cp-cyan);
+    text-shadow: 0 0 5px var(--cp-cyan);
+}
+
+.cyber-btn:active {
+    transform: scale(0.95);
+}
+
+.small-btn {
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    margin-top: 0;
+}
+
+.btn-flash {
+    animation: flash 0.5s;
+}
+
+@keyframes flash {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+        background: var(--cp-cyan);
+    }
+}
+
+.recruit-btn {
+    font-size: 1.1rem;
+    margin-top: 100px;
+    padding: 40px 80px;
+}
+
+/* Scrollbar */
+#panel-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+#panel-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+#panel-content::-webkit-scrollbar-thumb {
+    background: var(--cp-yellow);
+    border-radius: 3px;
+}
+
+#panel-content::-webkit-scrollbar-thumb:hover {
+    background: var(--cp-cyan);
+}
+
+/* Ripperdoc Panel */
+.ripperdoc-header {
+    text-align: center;
+    margin-bottom: 15px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--cp-cyan);
+}
+
+.ripperdoc-header h3 {
+    color: var(--cp-cyan);
+    margin: 0 0 5px 0;
+}
+
+.ripperdoc-header p {
+    color: #aaa;
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+.ripperdoc-card {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--cp-cyan);
+    padding: 12px;
+    margin-bottom: 12px;
+    animation: slideIn 0.3s ease-out forwards;
+    opacity: 0;
+    transition: all 0.3s;
+}
+
+.ripperdoc-card:hover {
+    border-color: var(--cp-yellow);
+    transform: translateX(5px);
+}
+
+.heal-btn {
+    width: 100%;
+    background: var(--cp-red);
+    border-color: var(--cp-red);
+    color: #fff;
+}
+
+.heal-btn:hover {
+    background: #fff;
+    color: var(--cp-red);
+}
+
+.upgrade-section {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--cp-cyan);
+}
+
+.upgrade-section h4 {
+    font-size: 0.85rem;
+}
+
+.upgrade-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Floating Eddies Animation */
+.floating-eddies {
+    position: fixed;
+    color: var(--cp-yellow);
+    font-size: 1.5rem;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 10000;
+    text-shadow: 0 0 10px var(--cp-yellow), 0 0 20px var(--cp-yellow);
+    animation: floatUp 2s ease-out forwards;
+}
+
+@keyframes floatUp {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: translateY(-40px) scale(1.2);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(-80px) scale(0.8);
+        opacity: 0;
+    }
+}
+
+/* Sparkle Effect */
+.sparkle {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    background: var(--cp-cyan);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10000;
+    box-shadow: 0 0 10px var(--cp-cyan);
+    animation: sparkleFloat 1s ease-out forwards;
+}
+
+@keyframes sparkleFloat {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(var(--offset-x), var(--offset-y)) scale(0);
+        opacity: 0;
+    }
+}
+
+/* Enhanced Panel Animations */
+@keyframes panelBounce {
+    0% {
+        transform: translateY(50px) scale(0.9);
+        opacity: 0;
+    }
+
+    60% {
+        transform: translateY(-10px) scale(1.02);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+#panel-container {
+    animation: panelBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Log message types */
+.log-good {
+    color: var(--cp-cyan);
+    text-shadow: 0 0 5px var(--cp-cyan);
+}
+
+.log-bad {
+    color: var(--cp-red);
+    text-shadow: 0 0 5px var(--cp-red);
+}
+
+.log-neutral {
+    color: var(--cp-yellow);
+}
+
+/* Gang Cards */
+.gang-card {
+    background: rgba(255, 0, 60, 0.1);
+    border: 2px solid var(--cp-red);
+    padding: 15px;
+    margin-bottom: 15px;
+    animation: slideIn 0.3s ease-out forwards;
+    opacity: 0;
+}
+
+.gang-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.gang-name {
+    color: var(--cp-red);
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-shadow: 0 0 5px var(--cp-red);
+}
+
+.gang-stats {
+    display: flex;
+    gap: 15px;
+    font-size: 0.85rem;
+}
+
+.gang-strength {
+    color: var(--cp-yellow);
+}
+
+.gang-territories {
+    color: var(--cp-cyan);
+}
+
+.gang-personality {
+    color: #aaa;
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+/* Rival Territory Cards */
+.rival-territory-card {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--cp-red);
+    border-left: 4px solid var(--cp-red);
+    padding: 10px;
+    margin-bottom: 8px;
+    margin-left: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s;
+}
+
+.rival-territory-card:hover {
+    border-color: var(--cp-yellow);
+    transform: translateX(5px);
+    background: rgba(255, 0, 60, 0.1);
+}
+
+.attack-btn {
+    background: var(--cp-red);
+    border-color: var(--cp-red);
+    color: #fff;
+}
+
+.attack-btn:hover {
+    background: #fff;
+    color: var(--cp-red);
+    box-shadow: 0 0 20px var(--cp-red);
+}
+
+/* Attack Dialog */
+.attack-dialog {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--cp-bg);
+    border: 3px solid var(--cp-red);
+    padding: 20px;
+    width: 80%;
+    max-width: 500px;
+    z-index: 1000;
+    box-shadow: 0 0 30px rgba(255, 0, 60, 0.5);
+    animation: panelBounce 0.4s ease-out;
+}
+
+.attack-dialog h3 {
+    color: var(--cp-red);
+    margin: 0 0 10px 0;
+    text-align: center;
+    text-shadow: 0 0 10px var(--cp-red);
+}
+
+.attack-dialog p {
+    color: #aaa;
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 0.85rem;
+}
+
+.member-selection {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--cp-cyan);
+}
+
+.member-checkbox {
+    display: block;
+    padding: 8px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 2px solid transparent;
+}
+
+.member-checkbox:hover {
+    background: rgba(0, 240, 255, 0.1);
+    border-left-color: var(--cp-cyan);
+}
+
+.member-checkbox input {
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.member-checkbox span {
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+.dialog-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.dialog-buttons .cyber-btn {
+    flex: 1;
 }
