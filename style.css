@@ -1938,6 +1938,7 @@ footer {
             margin-top: 0;
             font-size: 1.3rem;
             text-shadow: 0 0 10px var(--cp-yellow);
+            background: rgba(0, 0, 0, 0.5);
         }
 
         .tutorial-body h4 {
@@ -1945,18 +1946,21 @@ footer {
             margin-top: 20px;
             margin-bottom: 10px;
             font-size: 1.1rem;
+            background: rgba(0, 0, 0, 0.5);
         }
 
         .tutorial-body p {
             line-height: 1.6;
             margin: 10px 0;
             color: var(--cp-black);
+            background: rgba(0, 0, 0, 0.5);
         }
 
         .tutorial-body ul {
             list-style: none;
             padding: 0;
             margin: 15px 0;
+            background: rgba(0, 0, 0, 0.5);
         }
 
         .tutorial-body li {
@@ -1964,12 +1968,14 @@ footer {
             margin: 8px 0;
             border-left: 3px solid var(--cp-cyan);
             line-height: 1.5;
+            background: rgba(0, 0, 0, 0.5);
         }
 
         .tutorial-body .highlight {
             color: var(--cp-yellow);
             font-weight: bold;
             text-shadow: 0 0 5px var(--cp-yellow);
+            background: rgba(0, 0, 0, 0.5);
         }
 
         .tutorial-body .tip {
@@ -1980,6 +1986,7 @@ footer {
             color: var(--cp-yellow);
             font-style: italic;
             text-align: center;
+            background: rgba(0, 0, 0, 0.5);
         }
 
         #tutorial-ok-btn {
