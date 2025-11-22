@@ -1,3 +1,5 @@
+import { MissionUIManager } from './MissionUIManager.js';
+
 export class UIManager {
     constructor(gameManager, audioManager) {
         this.gm = gameManager;
@@ -5,6 +7,9 @@ export class UIManager {
         this.missionJustStarted = false;
         this.activeTab = null;
         this.activeTabContent = null;
+
+        // Sub-managers
+        this.missionUI = new MissionUIManager(this.gm, this);
 
         // Elements
         this.eddiesEl = document.querySelector('#eddies-display .val');
@@ -45,6 +50,10 @@ export class UIManager {
             // Auto-update roster if open
             if (this.panelContainer.style.display === 'flex' && this.activeTab === 'roster') {
                 this.refreshRoster();
+            }
+            // Auto-update missions if open
+            if (this.panelContainer.style.display === 'flex' && this.activeTab === 'missions') {
+                this.missionUI.render(this.activeTabContent);
             }
         });
 
@@ -175,7 +184,8 @@ export class UIManager {
         const tabs = document.createElement('div');
         tabs.className = 'tabs';
         tabs.innerHTML = `
-            <button class="tab-btn active" data-tab="roster">ROSTER</button>
+            <button class="tab-btn active" data-tab="missions">MISSIONS</button>
+            <button class="tab-btn" data-tab="roster">ROSTER</button>
             <button class="tab-btn" data-tab="territory">TERRITORY</button>
             <button class="tab-btn" data-tab="gangs">GANGS</button>
         `;
@@ -186,7 +196,7 @@ export class UIManager {
         this.panelContent.appendChild(tabContent);
 
         // Set initial state
-        this.activeTab = 'roster';
+        this.activeTab = 'missions';
         this.activeTabContent = tabContent;
 
         // Tab switching
@@ -195,7 +205,11 @@ export class UIManager {
                 tabs.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
 
-                if (btn.dataset.tab === 'roster') {
+                if (btn.dataset.tab === 'missions') {
+                    this.activeTab = 'missions';
+                    tabContent.innerHTML = '';
+                    this.missionUI.render(tabContent);
+                } else if (btn.dataset.tab === 'roster') {
                     this.activeTab = 'roster';
                     tabContent.innerHTML = '';
                     this.renderRoster(tabContent);
@@ -212,7 +226,7 @@ export class UIManager {
         });
 
         // Initial render
-        this.renderRoster(tabContent);
+        this.missionUI.render(tabContent);
     }
 
     refreshRoster() {
@@ -279,19 +293,8 @@ export class UIManager {
                 </div>
             `;
 
-            if (member.status !== 'ON MISSION' && !member.injured) {
-                const missionBtn = document.createElement('button');
-                missionBtn.className = 'cyber-btn small-btn';
-                missionBtn.textContent = 'SEND ON MISSION';
-                missionBtn.onclick = () => {
-                    if (this.audio) this.audio.playClick();
-
-                    this.gm.startMission(member.id);
-                    this.missionJustStarted = true; // Flag to trigger animation on next render
-                    this.openPanel('hideout'); // Re-render to show status update
-                };
-                card.appendChild(missionBtn);
-            } else if (member.status === 'ON MISSION') {
+            // Removed "SEND ON MISSION" button - users must use MISSIONS tab instead
+            if (member.status === 'ON MISSION') {
                 const timer = document.createElement('div');
                 timer.className = 'mission-timer';
                 timer.textContent = 'MISSION IN PROGRESS...';

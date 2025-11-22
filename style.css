@@ -1137,3 +1137,43 @@ footer {
 .dialog-buttons .cyber-btn {
     flex: 1;
 }
+
+/* Biker Animation */
+.biker-animation-section {
+    position: relative;
+    height: 100px;
+    background: rgba(0, 0, 0, 0.5);
+    margin-bottom: 15px;
+    border-bottom: 2px solid var(--cp-cyan);
+    overflow: hidden;
+    display: none;
+    /* Hidden by default, shown in roster */
+}
+
+.biker-container {
+    position: absolute;
+    left: -100px;
+    bottom: 10px;
+    width: 100px;
+    height: 80px;
+}
+
+.biker-container.riding {
+    animation: rideAcross 3s linear forwards;
+}
+
+.biker-sprite {
+    height: 100%;
+    width: auto;
+    filter: drop-shadow(0 0 5px var(--cp-cyan));
+}
+
+@keyframes rideAcross {
+    0% {
+        left: -100px;
+    }
+
+    100% {
+        left: 100%;
+    }
+}
