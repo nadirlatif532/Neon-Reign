@@ -60,7 +60,7 @@ body {
     pointer-events: none;
     display: flex;
     flex-direction: column;
-    padding: 20px;
+    padding: 5px;
     box-sizing: border-box;
 }
 
@@ -521,7 +521,7 @@ main {
 footer {
     border-top: 2px solid var(--cp-red);
     padding-top: 10px;
-    padding-bottom: 10px;
+    padding-bottom: 2px;
     background: rgba(5, 5, 5, 0.7);
     margin-top: auto;
 }
