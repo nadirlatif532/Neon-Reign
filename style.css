@@ -1919,7 +1919,7 @@ footer {
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: transparent;
+            background: rgba(10, 10, 10, 0.5);
             display: flex;
             flex-direction: column;
             animation: panelBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
