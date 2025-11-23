@@ -26,6 +26,7 @@ export interface Mission {
     name: string;
     type: string;
     difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EXTREME';
+    difficultyRating: number; // New: Numeric value for math (50, 100, 150, 200)
     duration: number;
     eddiesMin: number;
     eddiesMax: number;
@@ -41,7 +42,7 @@ export interface Mission {
 
 export interface ActiveMission {
     id: number;
-    memberId: number;
+    memberIds: number[]; // Changed: Array of member IDs
     mission: Mission;
     startTime: number;
     endTime: number;
@@ -83,8 +84,8 @@ export const gameStore = map<GameState>({
             maxHealth: 100,
             injured: false,
             stats: {
-                cool: 2,
-                reflex: 2
+                cool: 4,
+                reflex: 4
             },
             currentMission: null
         }
@@ -203,31 +204,35 @@ export const upgradeMember = (memberId: number, upgradeType: 'cool' | 'reflex' |
     return success;
 };
 
-export const startMission = (memberId: number, missionId: number, durationOverride: number | null = null) => {
+export const startMission = (memberIds: number[], missionId: number, durationOverride: number | null = null) => {
     const state = gameStore.get();
-    const member = state.members.find(m => m.id === memberId);
     const mission = state.availableMissions.find(m => m.id === missionId);
 
-    if (!member || !mission) return { success: false, reason: 'Member or Mission not found' };
-    if (member.status !== 'IDLE') return { success: false, reason: 'Member is busy' };
-    if (member.injured) return { success: false, reason: 'Member is injured' };
+    if (!mission) return { success: false, reason: 'Mission not found' };
+    if (memberIds.length === 0) return { success: false, reason: 'No members selected' };
 
-    // Requirements check
-    if (member.level < mission.minLevel) return { success: false, reason: 'Level too low' };
-    if (mission.minCool && member.stats.cool < mission.minCool) return { success: false, reason: 'Cool too low' };
-    if (mission.minReflex && member.stats.reflex < mission.minReflex) return { success: false, reason: 'Reflex too low' };
+    const members = state.members.filter(m => memberIds.includes(m.id));
 
-    // Update member status
+    // Validate all members
+    for (const member of members) {
+        if (member.status !== 'IDLE') return { success: false, reason: `${member.name} is busy` };
+        if (member.injured) return { success: false, reason: `${member.name} is injured` };
+        if (member.level < mission.minLevel) return { success: false, reason: `${member.name} level too low` };
+        if (mission.minCool && member.stats.cool < mission.minCool) return { success: false, reason: `${member.name} Cool too low` };
+        if (mission.minReflex && member.stats.reflex < mission.minReflex) return { success: false, reason: `${member.name} Reflex too low` };
+    }
+
+    // Update members status
     const updatedMembers = state.members.map(m =>
-        m.id === memberId ? { ...m, status: 'ON MISSION' as const, currentMission: mission.name } : m
+        memberIds.includes(m.id) ? { ...m, status: 'ON MISSION' as const, currentMission: mission.name } : m
     );
     gameStore.setKey('members', updatedMembers);
 
     // Add active mission
     const finalDuration = durationOverride !== null ? durationOverride : mission.duration;
     const activeMission: ActiveMission = {
-        id: Date.now() + Math.random(),
-        memberId,
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        memberIds,
         mission,
         startTime: Date.now(),
         endTime: Date.now() + finalDuration
@@ -238,68 +243,106 @@ export const startMission = (memberId: number, missionId: number, durationOverri
 
     // Schedule completion
     setTimeout(() => {
-        completeMission(memberId, activeMission.id);
+        completeMission(activeMission.id);
     }, finalDuration);
 
     return { success: true };
 };
 
-export const completeMission = (memberId: number, activeMissionId: number) => {
+export const completeMission = (activeMissionId: number) => {
     const state = gameStore.get();
     const activeMission = state.activeMissions.find(m => m.id === activeMissionId);
     if (!activeMission) return;
 
-    const member = state.members.find(m => m.id === memberId);
-    if (!member) return;
-
     const mission = activeMission.mission;
+    const members = state.members.filter(m => activeMission.memberIds.includes(m.id));
 
-    // Calculate rewards
-    const rewardMultiplier = 1 + (member.stats.reflex * 0.01);
-    const eddiesReward = Math.floor((Math.random() * (mission.eddiesMax - mission.eddiesMin) + mission.eddiesMin) * rewardMultiplier);
-    const xpReward = Math.floor((Math.random() * (mission.xpMax - mission.xpMin) + mission.xpMin) * rewardMultiplier);
-    const repReward = mission.rep;
+    if (members.length === 0) return;
 
-    addEddies(eddiesReward);
-    addRep(repReward);
+    // --- Team Logic ---
+    const teamSize = members.length;
 
-    // Injury logic
-    const injuryChance = Math.max(0.05, mission.injuryChance - (member.stats.cool * 0.02));
-    let isInjured = false;
-    let newHealth = member.health;
+    // Calculate Team Power
+    // Base power is sum of relevant stats + levels
+    const teamPower = members.reduce((sum, m) => {
+        return sum + m.stats.cool + m.stats.reflex + (m.level * 2);
+    }, 0);
 
-    if (Math.random() < injuryChance) {
-        const damage = Math.floor(Math.random() * 40) + 20;
-        newHealth = Math.max(0, member.health - damage);
-        if (newHealth <= 0) {
-            newHealth = 0;
-            isInjured = true;
-        }
+    // Difficulty Rating (Default to 50 if missing)
+    const difficulty = mission.difficultyRating || 50;
+
+    // Success Chance: (Team Power / Difficulty) * 100
+    // Cap at 95%, Min 10%
+    const successChance = Math.min(0.95, Math.max(0.10, teamPower / difficulty));
+    const isSuccess = Math.random() < successChance;
+
+    // Rewards Calculation
+    // Multiplier based on success margin (if successful) or partial if failed? 
+    // For now: All or nothing on rewards, but XP is always gained.
+
+    let eddiesReward = 0;
+    let xpReward = 0;
+    let repReward = 0;
+    let leveledUpMembers: number[] = [];
+    let injuredMembers: number[] = [];
+
+    if (isSuccess) {
+        const rewardMultiplier = 1 + (teamPower * 0.01); // Bonus for overpowering
+        eddiesReward = Math.floor((Math.random() * (mission.eddiesMax - mission.eddiesMin) + mission.eddiesMin) * rewardMultiplier);
+        xpReward = Math.floor((Math.random() * (mission.xpMax - mission.xpMin) + mission.xpMin)); // Base XP per person
+        repReward = mission.rep;
+
+        addEddies(eddiesReward);
+        addRep(repReward);
+    } else {
+        // Failure: Small XP consolation
+        xpReward = Math.floor(mission.xpMin * 0.2);
     }
 
-    // XP & Level Up
-    let newXp = member.xp + xpReward;
-    let newLevel = member.level;
-    let newXpToNext = member.xpToNext;
-    let newMaxHealth = member.maxHealth;
-    let newCool = member.stats.cool;
-    let newReflex = member.stats.reflex;
-    let leveledUp = false;
+    // Injury Logic
+    // Risk reduced by 5% per extra team member
+    const riskReduction = (teamSize - 1) * 0.05;
+    const baseInjuryChance = Math.max(0.05, mission.injuryChance - riskReduction);
 
-    while (newXp >= newXpToNext) {
-        newXp -= newXpToNext;
-        newLevel++;
-        newXpToNext = Math.floor(newXpToNext * 1.5);
-        newCool += Math.floor(Math.random() * 2) + 1;
-        newReflex += Math.floor(Math.random() * 2) + 1;
-        newMaxHealth += 10;
-        newHealth = newMaxHealth; // Full heal
-        leveledUp = true;
-    }
-
-    // Update Member
+    // Process each member
     const updatedMembers = state.members.map(m => {
-        if (m.id === memberId) {
+        if (activeMission.memberIds.includes(m.id)) {
+            let newHealth = m.health;
+            let isInjured = false;
+
+            // Roll for injury
+            // Higher stats reduce individual risk slightly too
+            const personalRisk = Math.max(0.01, baseInjuryChance - (m.stats.cool * 0.01));
+
+            if (Math.random() < personalRisk) {
+                const damage = Math.floor(Math.random() * 30) + 10;
+                newHealth = Math.max(0, m.health - damage);
+                if (newHealth <= 0) {
+                    newHealth = 0;
+                    isInjured = true;
+                    injuredMembers.push(m.id);
+                }
+            }
+
+            // XP & Level Up
+            let newXp = m.xp + xpReward;
+            let newLevel = m.level;
+            let newXpToNext = m.xpToNext;
+            let newMaxHealth = m.maxHealth;
+            let newCool = m.stats.cool;
+            let newReflex = m.stats.reflex;
+
+            while (newXp >= newXpToNext) {
+                newXp -= newXpToNext;
+                newLevel++;
+                newXpToNext = Math.floor(newXpToNext * 1.5);
+                newCool += Math.floor(Math.random() * 2) + 1;
+                newReflex += Math.floor(Math.random() * 2) + 1;
+                newMaxHealth += 10;
+                newHealth = newMaxHealth; // Full heal on level up
+                leveledUpMembers.push(m.id);
+            }
+
             return {
                 ...m,
                 status: isInjured ? 'INJURED' : 'IDLE',
@@ -311,10 +354,11 @@ export const completeMission = (memberId: number, activeMissionId: number) => {
                 level: newLevel,
                 xpToNext: newXpToNext,
                 stats: { cool: newCool, reflex: newReflex }
-            } as Member; // Explicit cast to satisfy TS if needed
+            } as Member;
         }
         return m;
     });
+
     gameStore.setKey('members', updatedMembers);
 
     // Remove active mission
@@ -324,11 +368,12 @@ export const completeMission = (memberId: number, activeMissionId: number) => {
     // Dispatch Event for UI
     window.dispatchEvent(new CustomEvent('mission-complete', {
         detail: {
-            member: updatedMembers.find(m => m.id === memberId),
+            memberIds: activeMission.memberIds,
             mission,
+            success: isSuccess,
             rewards: { eddies: eddiesReward, xp: xpReward, rep: repReward },
-            leveledUp,
-            injured: isInjured
+            leveledUpMembers,
+            injuredMembers
         }
     }));
 };
@@ -336,34 +381,34 @@ export const completeMission = (memberId: number, activeMissionId: number) => {
 // Mission Templates
 const MISSION_TEMPLATES: Omit<Mission, 'id'>[] = [
     // HEIST missions
-    { name: 'CORP VAULT HEIST', type: 'HEIST', difficulty: 'EXTREME', duration: 120000, eddiesMin: 800, eddiesMax: 1500, xpMin: 150, xpMax: 250, rep: 10, injuryChance: 0.5, minLevel: 5, minCool: 10, description: 'Break into Arasaka\'s downtown vault. High security, high reward. Bring your best chrome and nerves of steel.' },
-    { name: 'DATA HEIST', type: 'HEIST', difficulty: 'HARD', duration: 90000, eddiesMin: 400, eddiesMax: 700, xpMin: 100, xpMax: 150, rep: 7, injuryChance: 0.35, minLevel: 3, minCool: 7, description: 'Netrunner needs muscle for a data snatch from a corp server room. In and out, no traces.' },
-    { name: 'STORE ROBBERY', type: 'HEIST', difficulty: 'EASY', duration: 30000, eddiesMin: 100, eddiesMax: 250, xpMin: 30, xpMax: 60, rep: 2, injuryChance: 0.15, minLevel: 1, minCool: 3, description: 'Local convenience store, minimal security. Quick eddies for a quick job. Don\'t get greedy.' },
+    { name: 'CORP VAULT HEIST', type: 'HEIST', difficulty: 'EXTREME', difficultyRating: 200, duration: 120000, eddiesMin: 800, eddiesMax: 1500, xpMin: 150, xpMax: 250, rep: 10, injuryChance: 0.5, minLevel: 5, minCool: 10, description: 'Break into Arasaka\'s downtown vault. High security, high reward. Bring your best chrome and nerves of steel.' },
+    { name: 'DATA HEIST', type: 'HEIST', difficulty: 'HARD', difficultyRating: 150, duration: 90000, eddiesMin: 400, eddiesMax: 700, xpMin: 100, xpMax: 150, rep: 7, injuryChance: 0.35, minLevel: 3, minCool: 7, description: 'Netrunner needs muscle for a data snatch from a corp server room. In and out, no traces.' },
+    { name: 'STORE ROBBERY', type: 'HEIST', difficulty: 'EASY', difficultyRating: 50, duration: 30000, eddiesMin: 100, eddiesMax: 250, xpMin: 30, xpMax: 60, rep: 2, injuryChance: 0.15, minLevel: 1, minCool: 3, description: 'Local convenience store, minimal security. Quick eddies for a quick job. Don\'t get greedy.' },
 
     // STREET RACE missions
-    { name: 'MIDNIGHT RACE', type: 'RACE', difficulty: 'HARD', duration: 90000, eddiesMin: 500, eddiesMax: 800, xpMin: 120, xpMax: 180, rep: 8, injuryChance: 0.3, minLevel: 4, minReflex: 8, description: 'Illegal street race through downtown. NCPD is watching. Fast reflexes and zero hesitation required.' },
-    { name: 'STREET SPRINT', type: 'RACE', difficulty: 'MEDIUM', duration: 60000, eddiesMin: 200, eddiesMax: 400, xpMin: 60, xpMax: 100, rep: 4, injuryChance: 0.2, minLevel: 2, minReflex: 5, description: 'Underground racing circuit needs a rider. Beat the clock, earn the cred. Watch for fixers trying to rig the game.' },
-    { name: 'DELIVERY RUN', type: 'RACE', difficulty: 'EASY', duration: 30000, eddiesMin: 80, eddiesMax: 150, xpMin: 25, xpMax: 50, rep: 1, injuryChance: 0.1, minLevel: 1, minReflex: 3, description: 'Get this package to Japantown. Fast. No questions asked. Payment on delivery.' },
+    { name: 'MIDNIGHT RACE', type: 'RACE', difficulty: 'HARD', difficultyRating: 140, duration: 90000, eddiesMin: 500, eddiesMax: 800, xpMin: 120, xpMax: 180, rep: 8, injuryChance: 0.3, minLevel: 4, minReflex: 8, description: 'Illegal street race through downtown. NCPD is watching. Fast reflexes and zero hesitation required.' },
+    { name: 'STREET SPRINT', type: 'RACE', difficulty: 'MEDIUM', difficultyRating: 90, duration: 60000, eddiesMin: 200, eddiesMax: 400, xpMin: 60, xpMax: 100, rep: 4, injuryChance: 0.2, minLevel: 2, minReflex: 5, description: 'Underground racing circuit needs a rider. Beat the clock, earn the cred. Watch for fixers trying to rig the game.' },
+    { name: 'DELIVERY RUN', type: 'RACE', difficulty: 'EASY', difficultyRating: 40, duration: 30000, eddiesMin: 80, eddiesMax: 150, xpMin: 25, xpMax: 50, rep: 1, injuryChance: 0.1, minLevel: 1, minReflex: 3, description: 'Get this package to Japantown. Fast. No questions asked. Payment on delivery.' },
 
     // PROTECTION missions
-    { name: 'VIP ESCORT', type: 'PROTECTION', difficulty: 'HARD', duration: 90000, eddiesMin: 450, eddiesMax: 750, xpMin: 110, xpMax: 170, rep: 7, injuryChance: 0.3, minLevel: 4, minCool: 8, description: 'Corp exec needs protection through hostile territory. Expect trouble. Keep them breathing, get paid big.' },
-    { name: 'TERRITORY PATROL', type: 'PROTECTION', difficulty: 'MEDIUM', duration: 60000, eddiesMin: 180, eddiesMax: 350, xpMin: 50, xpMax: 90, rep: 3, injuryChance: 0.2, minLevel: 2, minCool: 5, description: 'Make the rounds. Show the colors. Let rival gangs know this turf is spoken for.' },
-    { name: 'SHOP WATCH', type: 'PROTECTION', difficulty: 'EASY', duration: 30000, eddiesMin: 70, eddiesMax: 140, xpMin: 20, xpMax: 45, rep: 1, injuryChance: 0.1, minLevel: 1, minCool: 3, description: 'Local shop owner paying for protection. Stand outside, look intimidating. Easy eddies.' },
+    { name: 'VIP ESCORT', type: 'PROTECTION', difficulty: 'HARD', difficultyRating: 160, duration: 90000, eddiesMin: 450, eddiesMax: 750, xpMin: 110, xpMax: 170, rep: 7, injuryChance: 0.3, minLevel: 4, minCool: 8, description: 'Corp exec needs protection through hostile territory. Expect trouble. Keep them breathing, get paid big.' },
+    { name: 'TERRITORY PATROL', type: 'PROTECTION', difficulty: 'MEDIUM', difficultyRating: 80, duration: 60000, eddiesMin: 180, eddiesMax: 350, xpMin: 50, xpMax: 90, rep: 3, injuryChance: 0.2, minLevel: 2, minCool: 5, description: 'Make the rounds. Show the colors. Let rival gangs know this turf is spoken for.' },
+    { name: 'SHOP WATCH', type: 'PROTECTION', difficulty: 'EASY', difficultyRating: 30, duration: 30000, eddiesMin: 70, eddiesMax: 140, xpMin: 20, xpMax: 45, rep: 1, injuryChance: 0.1, minLevel: 1, minCool: 3, description: 'Local shop owner paying for protection. Stand outside, look intimidating. Easy eddies.' },
 
     // BOUNTY HUNT missions
-    { name: 'HIGH VALUE TARGET', type: 'BOUNTY', difficulty: 'EXTREME', duration: 120000, eddiesMin: 900, eddiesMax: 1600, xpMin: 160, xpMax: 260, rep: 12, injuryChance: 0.55, minLevel: 6, minCool: 10, minReflex: 10, description: 'NCPD\'s most wanted. Heavy chrome, heavier firepower. Bring them in alive... or don\'t. Bonus either way.' },
-    { name: 'GANG LIEUTENANT', type: 'BOUNTY', difficulty: 'HARD', duration: 90000, eddiesMin: 500, eddiesMax: 850, xpMin: 110, xpMax: 180, rep: 8, injuryChance: 0.4, minLevel: 4, minCool: 7, minReflex: 7, description: 'Rival gang\'s second-in-command has a price on their head. They won\'t go quietly. Expect a fight.' },
-    { name: 'STREET THUG', type: 'BOUNTY', difficulty: 'MEDIUM', duration: 60000, eddiesMin: 150, eddiesMax: 300, xpMin: 50, xpMax: 90, rep: 3, injuryChance: 0.25, minLevel: 2, minCool: 5, description: 'Small-time troublemaker causing problems. Track them down, rough them up, collect the bounty.' },
+    { name: 'HIGH VALUE TARGET', type: 'BOUNTY', difficulty: 'EXTREME', difficultyRating: 220, duration: 120000, eddiesMin: 900, eddiesMax: 1600, xpMin: 160, xpMax: 260, rep: 12, injuryChance: 0.55, minLevel: 6, minCool: 10, minReflex: 10, description: 'NCPD\'s most wanted. Heavy chrome, heavier firepower. Bring them in alive... or don\'t. Bonus either way.' },
+    { name: 'GANG LIEUTENANT', type: 'BOUNTY', difficulty: 'HARD', difficultyRating: 170, duration: 90000, eddiesMin: 500, eddiesMax: 850, xpMin: 110, xpMax: 180, rep: 8, injuryChance: 0.4, minLevel: 4, minCool: 7, minReflex: 7, description: 'Rival gang\'s second-in-command has a price on their head. They won\'t go quietly. Expect a fight.' },
+    { name: 'STREET THUG', type: 'BOUNTY', difficulty: 'MEDIUM', difficultyRating: 70, duration: 60000, eddiesMin: 150, eddiesMax: 300, xpMin: 50, xpMax: 90, rep: 3, injuryChance: 0.25, minLevel: 2, minCool: 5, description: 'Small-time troublemaker causing problems. Track them down, rough them up, collect the bounty.' },
 
     // SMUGGLING missions
-    { name: 'WEAPON SMUGGLING', type: 'SMUGGLING', difficulty: 'EXTREME', duration: 120000, eddiesMin: 1000, eddiesMax: 1700, xpMin: 180, xpMax: 280, rep: 11, injuryChance: 0.45, minLevel: 5, minReflex: 10, description: 'Military-grade hardware crossing borders. NCPD, Militech, and rival fixers all want a piece. Get it across or die trying.' },
-    { name: 'CONTRABAND RUN', type: 'SMUGGLING', difficulty: 'MEDIUM', duration: 60000, eddiesMin: 220, eddiesMax: 420, xpMin: 60, xpMax: 110, rep: 4, injuryChance: 0.2, minLevel: 2, minReflex: 6, description: 'Hot goods need moving. Checkpoints everywhere. Keep your head down and your throttle open.' },
-    { name: 'PACKAGE DELIVERY', type: 'SMUGGLING', difficulty: 'EASY', duration: 30000, eddiesMin: 90, eddiesMax: 180, xpMin: 30, xpMax: 55, rep: 2, injuryChance: 0.1, minLevel: 1, minReflex: 3, description: 'Unmarked package, no questions. Drop it at the coordinates and forget you ever saw it.' },
+    { name: 'WEAPON SMUGGLING', type: 'SMUGGLING', difficulty: 'EXTREME', difficultyRating: 210, duration: 120000, eddiesMin: 1000, eddiesMax: 1700, xpMin: 180, xpMax: 280, rep: 11, injuryChance: 0.45, minLevel: 5, minReflex: 10, description: 'Military-grade hardware crossing borders. NCPD, Militech, and rival fixers all want a piece. Get it across or die trying.' },
+    { name: 'CONTRABAND RUN', type: 'SMUGGLING', difficulty: 'MEDIUM', difficultyRating: 100, duration: 60000, eddiesMin: 220, eddiesMax: 420, xpMin: 60, xpMax: 110, rep: 4, injuryChance: 0.2, minLevel: 2, minReflex: 6, description: 'Hot goods need moving. Checkpoints everywhere. Keep your head down and your throttle open.' },
+    { name: 'PACKAGE DELIVERY', type: 'SMUGGLING', difficulty: 'EASY', difficultyRating: 40, duration: 30000, eddiesMin: 90, eddiesMax: 180, xpMin: 30, xpMax: 55, rep: 2, injuryChance: 0.1, minLevel: 1, minReflex: 3, description: 'Unmarked package, no questions. Drop it at the coordinates and forget you ever saw it.' },
 
     // DEBT COLLECTION missions
-    { name: 'CORP DEBT COLLECTION', type: 'DEBT', difficulty: 'HARD', duration: 90000, eddiesMin: 550, eddiesMax: 900, xpMin: 120, xpMax: 190, rep: 9, injuryChance: 0.35, minLevel: 4, minCool: 9, description: 'Executive defaulted on a loan. Corp security means business. Collect the eddies or send a message.' },
-    { name: 'ENFORCER WORK', type: 'DEBT', difficulty: 'MEDIUM', duration: 60000, eddiesMin: 200, eddiesMax: 380, xpMin: 55, xpMax: 95, rep: 4, injuryChance: 0.25, minLevel: 2, minCool: 6, description: 'Someone owes the wrong people. Make sure they understand the consequences of missed payments.' },
-    { name: 'SMALL COLLECTION', type: 'DEBT', difficulty: 'EASY', duration: 30000, eddiesMin: 60, eddiesMax: 120, xpMin: 20, xpMax: 40, rep: 1, injuryChance: 0.12, minLevel: 1, minCool: 3, description: 'Local debtor been dodging calls. Show up at their door, collect what\'s owed. Nothing personal, just business.' }
+    { name: 'CORP DEBT COLLECTION', type: 'DEBT', difficulty: 'HARD', difficultyRating: 130, duration: 90000, eddiesMin: 550, eddiesMax: 900, xpMin: 120, xpMax: 190, rep: 9, injuryChance: 0.35, minLevel: 4, minCool: 9, description: 'Executive defaulted on a loan. Corp security means business. Collect the eddies or send a message.' },
+    { name: 'ENFORCER WORK', type: 'DEBT', difficulty: 'MEDIUM', difficultyRating: 80, duration: 60000, eddiesMin: 200, eddiesMax: 380, xpMin: 55, xpMax: 95, rep: 4, injuryChance: 0.25, minLevel: 2, minCool: 6, description: 'Someone owes the wrong people. Make sure they understand the consequences of missed payments.' },
+    { name: 'SMALL COLLECTION', type: 'DEBT', difficulty: 'EASY', difficultyRating: 30, duration: 30000, eddiesMin: 60, eddiesMax: 120, xpMin: 20, xpMax: 40, rep: 1, injuryChance: 0.12, minLevel: 1, minCool: 3, description: 'Local debtor been dodging calls. Show up at their door, collect what\'s owed. Nothing personal, just business.' }
 ];
 
 export const generateMissions = () => {

@@ -1,11 +1,9 @@
 export class AudioManager {
     private audioContext: AudioContext;
-    private masterVolume: number = 0.3;
     private musicVolume: number = 0.15;
     private sfxVolume: number = 0.4;
     private musicPlaying: boolean = false;
     private currentSource: AudioBufferSourceNode | null = null;
-    private musicGainNode: GainNode | null = null;
     private loadedBuffers: { [url: string]: AudioBuffer } = {};
 
     private musicTracks: string[] = [
@@ -61,7 +59,6 @@ export class AudioManager {
 
         // Store references
         this.currentSource = source;
-        this.musicGainNode = gainNode;
 
         // When track ends, play another random track
         source.onended = () => {

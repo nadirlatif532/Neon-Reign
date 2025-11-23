@@ -6,6 +6,9 @@ export class Interface {
   private container: HTMLElement;
   private hudContainer: HTMLElement;
   private modalContainer: HTMLElement;
+  private activeTab: string = 'missions';
+  private lastActiveMissions: any[] = [];
+  private lastAvailableMissions: any[] = [];
 
   constructor() {
     this.container = document.getElementById('ui-layer')!;
@@ -60,6 +63,15 @@ export class Interface {
       const detail = (e as CustomEvent).detail;
       this.showMissionReward(detail);
     });
+
+    // Start music on first interaction
+    const startAudio = () => {
+      audioManager.startBackgroundMusic();
+      document.removeEventListener('click', startAudio);
+    };
+    document.addEventListener('click', startAudio);
+
+
   }
 
   private setupStoreSubscription() {
@@ -76,6 +88,17 @@ export class Interface {
       }
       if (repEl) repEl.textContent = state.rep.toLocaleString();
       if (membersEl) membersEl.textContent = state.members.length.toString();
+
+      // Update Mission Board if open and on missions tab
+      const tabContent = document.getElementById('tab-content');
+      if (tabContent && this.activeTab === 'missions') {
+        // Check if we need to re-render (simple reference check)
+        if (state.activeMissions !== this.lastActiveMissions || state.availableMissions !== this.lastAvailableMissions) {
+          this.lastActiveMissions = state.activeMissions;
+          this.lastAvailableMissions = state.availableMissions;
+          this.renderMissionsTab(tabContent);
+        }
+      }
     });
   }
 
@@ -109,16 +132,16 @@ export class Interface {
     this.modalContainer.appendChild(overlay);
 
     const tabContent = modal.querySelector('#tab-content')!;
-    let activeTab = 'missions';
+    this.activeTab = 'missions';
 
     // Tab switching
     modal.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         modal.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        activeTab = (btn as HTMLElement).dataset.tab!;
+        this.activeTab = (btn as HTMLElement).dataset.tab!;
         audioManager.playClick();
-        this.renderTabContent(tabContent, activeTab);
+        this.renderTabContent(tabContent, this.activeTab);
       });
     });
 
@@ -126,7 +149,7 @@ export class Interface {
     modal.querySelector('#close-modal')?.addEventListener('click', () => overlay.remove());
 
     // Render initial tab
-    this.renderTabContent(tabContent, activeTab);
+    this.renderTabContent(tabContent, this.activeTab);
   }
 
   private renderTabContent(container: Element, tab: string) {
@@ -155,8 +178,8 @@ export class Interface {
       container.appendChild(activeHeader);
 
       state.activeMissions.forEach(activeMission => {
-        const member = state.members.find(m => m.id === activeMission.memberId);
-        if (!member) return;
+        const members = state.members.filter(m => activeMission.memberIds.includes(m.id));
+        if (members.length === 0) return;
 
         const mission = activeMission.mission;
         const startTime = activeMission.startTime;
@@ -165,6 +188,9 @@ export class Interface {
         const card = document.createElement('div');
         card.className = 'bg-black/60 border-2 border-cp-cyan p-4 mb-3 animate-pulse';
 
+        const memberNames = members.map(m => m.name).join(', ');
+        const teamLabel = members.length > 1 ? `TEAM (${members.length})` : members[0].name;
+
         card.innerHTML = `
           <div class="flex justify-between items-start mb-2">
             <div>
@@ -172,15 +198,15 @@ export class Interface {
               <div class="text-cp-cyan text-sm font-cyber">[${mission.type}]</div>
             </div>
             <div class="text-right">
-              <div class="text-cp-yellow font-bold font-cyber">${member.name}</div>
-              <div class="text-gray-400 text-xs">LVL ${member.level}</div>
+              <div class="text-cp-yellow font-bold font-cyber">${teamLabel}</div>
+              <div class="text-gray-400 text-xs truncate max-w-[150px]">${memberNames}</div>
             </div>
           </div>
           
           <div class="w-full h-4 bg-gray-800 border border-cp-cyan mt-2 relative overflow-hidden">
-            <div class="h-full bg-cp-cyan transition-all duration-1000 ease-linear" style="width: 0%" id="progress-${activeMission.id}"></div>
+            <div class="h-full bg-cp-cyan transition-all duration-1000 ease-linear mission-progress" style="width: 0%" id="progress-${activeMission.id}"></div>
           </div>
-          <div class="text-right text-cp-cyan font-mono text-sm mt-1" id="timer-${activeMission.id}">CALCULATING...</div>
+          <div class="text-right text-cp-cyan font-mono text-sm mt-1 mission-timer" id="timer-${activeMission.id}">CALCULATING...</div>
         `;
 
         container.appendChild(card);
@@ -194,8 +220,8 @@ export class Interface {
           const remaining = Math.max(0, duration - elapsed);
           const progress = Math.min(100, (elapsed / duration) * 100);
 
-          const progressEl = card.querySelector(`#progress-${activeMission.id}`) as HTMLElement;
-          const timerEl = card.querySelector(`#timer-${activeMission.id}`) as HTMLElement;
+          const progressEl = card.querySelector('.mission-progress') as HTMLElement;
+          const timerEl = card.querySelector('.mission-timer') as HTMLElement;
 
           if (progressEl) progressEl.style.width = `${progress}%`;
           if (timerEl) timerEl.textContent = `${(remaining / 1000).toFixed(1)}s remaining`;
@@ -282,7 +308,7 @@ export class Interface {
     overlay.className = 'fixed inset-0 bg-black/95 flex justify-center items-center z-[10001] animate-[fadeIn_0.3s]';
 
     const modal = document.createElement('div');
-    modal.className = 'bg-cp-bg border-[3px] border-cp-cyan shadow-[0_0_40px_rgba(0,240,255,0.5)] w-[90%] max-w-[900px] h-[85vh] flex flex-col animate-modalSlideIn pointer-events-auto';
+    modal.className = 'bg-cp-bg border-[3px] border-cp-cyan shadow-[0_0_40px_rgba(0,240,255,0.5)] w-[90%] max-w-[1000px] h-[90vh] flex flex-col animate-modalSlideIn pointer-events-auto';
 
     modal.innerHTML = `
       <div class="bg-cp-cyan/10 border-b-2 border-cp-cyan p-5 flex justify-between items-center shrink-0">
@@ -291,18 +317,21 @@ export class Interface {
       </div>
       
       <div class="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 overflow-y-auto flex-1">
-        <!-- Left Column: Details -->
-        <div class="border-r border-cp-cyan pr-5">
-          <span class="inline-block px-4 py-2 text-xl font-bold rounded mb-3 bg-cp-black border border-cp-yellow text-cp-yellow">
-            ${mission.difficulty}
-          </span>
-          <div class="text-cp-yellow text-lg mb-4 font-cyber">${mission.type}</div>
-          
-          <div class="text-white text-base leading-relaxed mb-4 p-4 bg-black/30 border-l-[3px] border-cp-yellow italic font-cyber">
-            "${mission.description}"
+        <!-- Left Column: Details & Stats -->
+        <div class="border-r border-cp-cyan pr-5 flex flex-col gap-4">
+          <div>
+            <span class="inline-block px-4 py-2 text-xl font-bold rounded mb-3 bg-cp-black border border-cp-yellow text-cp-yellow">
+              ${mission.difficulty}
+            </span>
+            <div class="text-cp-yellow text-lg mb-2 font-cyber">${mission.type}</div>
+            
+            <div class="text-white text-base leading-relaxed mb-4 p-4 bg-black/30 border-l-[3px] border-cp-yellow italic font-cyber">
+              "${mission.description}"
+            </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-4 mt-5">
+          <!-- Mission Stats Grid -->
+          <div class="grid grid-cols-2 gap-4">
             <div class="bg-cp-cyan/5 border border-cp-cyan/30 p-3">
               <div class="text-cp-cyan text-xs font-bold mb-1">REWARD</div>
               <div class="text-white text-lg font-cyber">${mission.eddiesMin}-${mission.eddiesMax}€</div>
@@ -316,12 +345,34 @@ export class Interface {
               <div class="text-white text-lg font-cyber">${mission.duration / 1000}s</div>
             </div>
             <div class="bg-cp-cyan/5 border border-cp-cyan/30 p-3">
-              <div class="text-cp-cyan text-xs font-bold mb-1">RISK</div>
+              <div class="text-cp-cyan text-xs font-bold mb-1">BASE RISK</div>
               <div class="text-white text-lg font-cyber">${Math.round(mission.injuryChance * 100)}%</div>
             </div>
           </div>
 
-          <div class="mt-5">
+          <!-- Team Stats & Probability -->
+          <div class="bg-black/40 border border-cp-yellow p-4 mt-2">
+            <h4 class="text-cp-yellow font-bold font-cyber mb-3 border-b border-cp-yellow/30 pb-1">TEAM PROJECTIONS</h4>
+            
+            <div class="flex justify-between mb-2 text-sm">
+              <span class="text-gray-400">TEAM POWER:</span>
+              <span class="text-white font-bold" id="team-power">0</span>
+            </div>
+            <div class="flex justify-between mb-2 text-sm">
+              <span class="text-gray-400">WIN CHANCE:</span>
+              <span class="text-cp-cyan font-bold" id="win-chance">0%</span>
+            </div>
+            <div class="w-full h-2 bg-gray-800 mb-4">
+              <div id="win-bar" class="h-full bg-cp-cyan transition-all duration-300" style="width: 0%"></div>
+            </div>
+
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-400">INJURY RISK:</span>
+              <span class="text-cp-red font-bold" id="injury-risk">--</span>
+            </div>
+          </div>
+
+          <div class="mt-2">
              <div class="text-cp-red text-xs font-bold mb-2">REQUIREMENTS</div>
              <div class="text-gray-400 font-cyber text-sm">
                LEVEL ${mission.minLevel}+ 
@@ -332,25 +383,28 @@ export class Interface {
         </div>
 
         <!-- Right Column: Crew Selection -->
-        <div class="flex flex-col">
-          <h3 class="text-cp-yellow mt-0 mb-4 font-cyber text-xl font-bold">SELECT CREW MEMBER</h3>
+        <div class="flex flex-col h-full">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-cp-yellow m-0 font-cyber text-xl font-bold">SELECT CREW</h3>
+            <span class="text-xs text-gray-400">MAX 3 MEMBERS</span>
+          </div>
           
-          <div id="crew-list" class="flex-1 overflow-y-auto max-h-[400px] space-y-3">
+          <div id="crew-list" class="flex-1 overflow-y-auto max-h-[400px] space-y-3 pr-2">
             <!-- Crew members go here -->
           </div>
         </div>
       </div>
 
-      <!-- Biker Animation Section (Visual only) -->
-      <div class="w-full h-[120px] bg-black/30 border-t-2 border-cp-yellow relative overflow-hidden shrink-0">
-         <div id="biker-anim" class="absolute left-[-150px] bottom-[10px] w-[150px] h-[100px]">
+      <!-- Biker Animation Section -->
+      <div class="w-full h-[100px] bg-black/30 border-t-2 border-cp-yellow relative overflow-hidden shrink-0">
+         <div id="biker-anim" class="absolute left-[-150px] bottom-[10px] w-[150px] h-[80px]">
            <img src="assets/biker.png" class="w-full h-full object-contain drop-shadow-[0_0_5px_var(--cp-cyan)]" />
          </div>
       </div>
 
       <div class="border-t-2 border-cp-cyan p-5 flex justify-between items-center bg-black/30 shrink-0">
         <div class="text-cp-yellow text-xl font-bold font-cyber">
-          SELECTED: <span id="selected-count">0</span>/1
+          SELECTED: <span id="selected-count">0</span>/3
         </div>
         <button id="send-crew-btn" class="cyber-btn px-10 py-4 text-xl disabled:opacity-50 disabled:cursor-not-allowed">
           SEND CREW
@@ -361,12 +415,53 @@ export class Interface {
     overlay.appendChild(modal);
     this.modalContainer.appendChild(overlay);
 
-    let selectedMemberId: number | null = null;
+    let selectedMemberIds: number[] = [];
     const sendBtn = modal.querySelector('#send-crew-btn') as HTMLButtonElement;
     const selectedCountEl = modal.querySelector('#selected-count')!;
     const bikerAnim = modal.querySelector('#biker-anim') as HTMLElement;
 
+    // Stats Elements
+    const teamPowerEl = modal.querySelector('#team-power')!;
+    const winChanceEl = modal.querySelector('#win-chance')!;
+    const winBarEl = modal.querySelector('#win-bar') as HTMLElement;
+    const injuryRiskEl = modal.querySelector('#injury-risk')!;
+
     sendBtn.disabled = true;
+
+    // Update Stats Function
+    const updateStats = () => {
+      const state = gameStore.get();
+      const selectedMembers = state.members.filter(m => selectedMemberIds.includes(m.id));
+
+      if (selectedMembers.length === 0) {
+        teamPowerEl.textContent = '0';
+        winChanceEl.textContent = '0%';
+        winBarEl.style.width = '0%';
+        injuryRiskEl.textContent = '--';
+        return;
+      }
+
+      // Calculate Power
+      const teamPower = selectedMembers.reduce((sum, m) => sum + m.stats.cool + m.stats.reflex + (m.level * 2), 0);
+      const difficulty = mission.difficultyRating || 50;
+      const chance = Math.min(0.95, Math.max(0.10, teamPower / difficulty));
+
+      // Calculate Risk
+      const riskReduction = (selectedMembers.length - 1) * 0.05;
+      const baseRisk = Math.max(0.05, mission.injuryChance - riskReduction);
+
+      // Update UI
+      teamPowerEl.textContent = teamPower.toString();
+      winChanceEl.textContent = `${Math.round(chance * 100)}%`;
+      winBarEl.style.width = `${Math.round(chance * 100)}%`;
+
+      // Color code win chance
+      if (chance > 0.8) winChanceEl.className = 'text-green-500 font-bold';
+      else if (chance > 0.5) winChanceEl.className = 'text-yellow-500 font-bold';
+      else winChanceEl.className = 'text-red-500 font-bold';
+
+      injuryRiskEl.textContent = `${Math.round(baseRisk * 100)}%`;
+    };
 
     // Render Crew
     const crewList = modal.querySelector('#crew-list')!;
@@ -404,37 +499,38 @@ export class Interface {
                <span>REF ${member.stats.reflex}</span>
             </div>
           </div>
-          <div class="w-8 h-8 rounded-full bg-cp-cyan text-cp-black flex items-center justify-center text-lg check-circle ${selectedMemberId === member.id ? 'bg-cp-yellow animate-pulse' : ''}">
-            ${qualified ? (selectedMemberId === member.id ? '✓' : '') : '✗'}
+          <div class="w-6 h-6 border-2 border-cp-cyan flex items-center justify-center text-sm check-box transition-all">
           </div>
         `;
 
         if (qualified) {
           el.addEventListener('click', () => {
-            console.log('Member clicked:', member.id);
             audioManager.playClick();
-            // Deselect others
-            crewList.querySelectorAll('.check-circle').forEach(c => {
-              c.classList.remove('bg-cp-yellow', 'animate-pulse');
-              c.textContent = '';
-            });
-            crewList.querySelectorAll('.bg-cp-cyan/20').forEach(c => c.classList.remove('bg-cp-cyan/20', 'border-cp-yellow', 'shadow-[0_0_20px_rgba(252,238,10,0.4)]'));
+            const index = selectedMemberIds.indexOf(member.id);
+            const checkBox = el.querySelector('.check-box')!;
 
-            if (selectedMemberId === member.id) {
+            if (index > -1) {
               // Deselect
-              selectedMemberId = null;
-              sendBtn.disabled = true;
-              selectedCountEl.textContent = '0';
+              selectedMemberIds.splice(index, 1);
+              el.classList.remove('bg-cp-cyan/20', 'border-cp-yellow', 'shadow-[0_0_20px_rgba(252,238,10,0.4)]');
+              checkBox.classList.remove('bg-cp-yellow', 'border-cp-yellow');
+              checkBox.textContent = '';
             } else {
-              // Select
-              selectedMemberId = member.id;
+              // Select (Max 3)
+              if (selectedMemberIds.length >= 3) {
+                this.showToast('MAX 3 MEMBERS', 'warning');
+                return;
+              }
+              selectedMemberIds.push(member.id);
               el.classList.add('bg-cp-cyan/20', 'border-cp-yellow', 'shadow-[0_0_20px_rgba(252,238,10,0.4)]');
-              const check = el.querySelector('.check-circle')!;
-              check.classList.add('bg-cp-yellow', 'animate-pulse');
-              check.textContent = '✓';
-              sendBtn.disabled = false;
-              selectedCountEl.textContent = '1';
+              checkBox.classList.add('bg-cp-yellow', 'border-cp-yellow');
+              checkBox.textContent = '✓';
             }
+
+            // Update UI State
+            selectedCountEl.textContent = selectedMemberIds.length.toString();
+            sendBtn.disabled = selectedMemberIds.length === 0;
+            updateStats();
           });
         }
 
@@ -446,9 +542,8 @@ export class Interface {
     modal.querySelector('#close-detail')?.addEventListener('click', () => overlay.remove());
 
     sendBtn.addEventListener('click', () => {
-      console.log('Send button clicked');
       audioManager.playClick();
-      if (selectedMemberId) {
+      if (selectedMemberIds.length > 0) {
         // Play animation
         bikerAnim.style.animation = 'bikerSlide 4s linear forwards';
 
@@ -456,9 +551,9 @@ export class Interface {
         sendBtn.disabled = true;
         sendBtn.textContent = 'SENDING...';
 
-        // Wait a bit for effect (optional, but nice)
+        // Wait a bit for effect
         setTimeout(() => {
-          const result = startMission(selectedMemberId!, mission.id);
+          const result = startMission(selectedMemberIds, mission.id);
           if (result.success) {
             audioManager.playPurchase();
             this.showToast('MISSION STARTED', 'success');

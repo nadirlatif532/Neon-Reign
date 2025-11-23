@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+// Force restart
 import glsl from 'vite-plugin-glsl';
 import checker from 'vite-plugin-checker';
 import { VitePWA } from 'vite-plugin-pwa';
