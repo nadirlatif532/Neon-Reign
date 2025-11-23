@@ -9,6 +9,20 @@ export class Interface {
   private activeTab: string = 'missions';
   private lastActiveMissions: any[] = [];
   private lastAvailableMissions: any[] = [];
+  private flavorTexts: string[] = [
+    "WARNING: RELIC MALFUNCTION DETECTED",
+    "DON'T FORGET TO FEED YOUR CAT",
+    "HANAKO IS STILL WAITING AT EMBERS",
+    "NCPD WARRANT ISSUED: JAYWALKING",
+    "TRAUMA TEAM MEMBERSHIP EXPIRED",
+    "WAKE THE F*** UP, SAMURAI",
+    "KIROSHI OPTICS FIRMWARE UPDATE AVAILABLE",
+    "WEATHER UPDATE: ACID RAIN EXPECTED IN PACIFICA",
+    "MAXTAC DEPLOYED TO CITY CENTER",
+    "REMEMBER: STYLE OVER SUBSTANCE",
+    "NETWATCH IS WATCHING YOU",
+    "DELAMAIN: EXCUSE ME, BEEP BEEP"
+  ];
 
 
   constructor() {
@@ -20,6 +34,7 @@ export class Interface {
     this.container.appendChild(this.modalContainer);
 
     this.setupHUD();
+    this.setupFooter();
     this.setupListeners();
     this.setupStoreSubscription();
 
@@ -59,6 +74,59 @@ export class Interface {
         this.showTutorial();
       });
     }, 100);
+  }
+
+  private setupFooter() {
+    const footer = document.createElement('div');
+    footer.className = 'absolute bottom-0 left-0 w-full pointer-events-none z-40 overflow-hidden bg-black/80 border-t border-cp-cyan/50 backdrop-blur-sm';
+    footer.innerHTML = `
+      <div class="flex items-center justify-between px-4 py-1">
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 bg-cp-red animate-pulse"></div>
+          <div class="text-xs text-cp-cyan font-mono tracking-widest">NET.ACCESS: CONNECTED</div>
+        </div>
+        <div class="flex-1 text-center overflow-hidden mx-4">
+           <div id="flavor-text" class="text-cp-yellow font-cyber text-sm tracking-wide whitespace-nowrap animate-pulse-cyber">
+             INITIALIZING SYSTEM...
+           </div>
+        </div>
+        <div class="text-xs text-gray-500 font-mono">V.2.0.77</div>
+      </div>
+    `;
+    this.container.appendChild(footer);
+    this.startFlavorTextRotation();
+  }
+
+  private startFlavorTextRotation() {
+    const textEl = document.getElementById('flavor-text');
+    if (!textEl) return;
+
+    const updateText = () => {
+      // Fade out
+      textEl.style.opacity = '0';
+
+      setTimeout(() => {
+        // Change text
+        const randomText = this.flavorTexts[Math.floor(Math.random() * this.flavorTexts.length)];
+        textEl.textContent = randomText;
+
+        // Glitch effect classes
+        textEl.classList.add('glitch-text');
+
+        // Fade in
+        textEl.style.opacity = '1';
+
+        setTimeout(() => {
+          textEl.classList.remove('glitch-text');
+        }, 500);
+      }, 500);
+    };
+
+    // Initial text
+    updateText();
+
+    // Rotate every 8 seconds
+    setInterval(updateText, 8000);
   }
 
   private setupListeners() {
@@ -710,7 +778,7 @@ export class Interface {
       'error': 'bg-red-500'
     };
 
-    toast.className = `fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 ${colors[type]} text-black font-bold font-cyber z-[100] animate-bounce shadow-[0_0_10px_currentColor]`;
+    toast.className = `fixed bottom-20 left-1/2 -translate-x-1/2 px-6 py-3 ${colors[type]} text-black font-bold font-cyber z-[20000] animate-bounce shadow-[0_0_10px_currentColor]`;
     toast.textContent = message;
 
     this.container.appendChild(toast);
@@ -1145,9 +1213,9 @@ export class Interface {
       memberEl.className = 'flex items-center gap-3 p-2 bg-black/40 border border-cp-cyan/30 cursor-pointer hover:bg-cp-cyan/10';
 
       memberEl.innerHTML = `
-        < input type = "checkbox" value = "${member.id}" class="w-5 h-5" data - power="${10 + (member.stats.cool * 2) + (member.stats.reflex * 2) + (member.level * 5)}" >
-          <span class="flex-1 font-cyber" > ${member.name} (LVL ${member.level} - COOL:${member.stats.cool} REF:${member.stats.reflex})</span>
-            `;
+        <input type="checkbox" value="${member.id}" class="w-5 h-5" data-power="${10 + (member.stats.cool * 2) + (member.stats.reflex * 2) + (member.level * 5)}">
+        <span class="flex-1 font-cyber">${member.name} (LVL ${member.level} - COOL:${member.stats.cool} REF:${member.stats.reflex})</span>
+      `;
 
       const checkbox = memberEl.querySelector('input') as HTMLInputElement;
       checkbox.addEventListener('change', () => {
