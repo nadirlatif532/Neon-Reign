@@ -31,6 +31,12 @@ export class Preloader extends Phaser.Scene {
             this.scene.start('CityScene');
             console.log('Loading complete');
         });
+
+        this.load.on('loaderror', (file: { key: string; src: string }) => {
+            console.error('Error loading asset:', file.key, file.src);
+            // Optional: Continue anyway or show error on screen
+            this.add.text(10, 10 + (Math.random() * 100), `Error: ${file.key}`, { color: '#ff0000' });
+        });
     }
 
     create() {
