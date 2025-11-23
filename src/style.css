@@ -217,10 +217,378 @@ body {
     animation: glitch 0.2s infinite;
 }
 
+
+#app canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* UI Overlay Layer */
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* Custom Components */
+.cyber-btn {
+    background-color: var(--color-cp-black);
+    border: 1px solid var(--color-cp-yellow);
+    color: var(--color-cp-yellow);
+    padding: 0.5rem 1rem;
+    font-family: var(--font-family-cyber);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    z-index: 10;
+    cursor: pointer;
+}
+
+.cyber-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgb(252 238 10 / 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.5s, height 0.5s;
+}
+
+.cyber-btn:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.cyber-btn:hover {
+    background-color: var(--color-cp-yellow);
+    color: var(--color-cp-black);
+    box-shadow: 0 0 20px var(--color-cp-yellow);
+    transform: scale(1.05);
+}
+
+.cyber-btn:active {
+    transform: scale(0.95);
+}
+
+.cyber-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.tab-btn.active {
+    background-color: var(--color-cp-yellow);
+    color: var(--color-cp-black);
+    box-shadow: 0 0 15px var(--color-cp-yellow);
+}
+
+.scanlines {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom,
+            rgba(255, 255, 255, 0),
+            rgba(255, 255, 255, 0) 50%,
+            rgba(0, 0, 0, 0.2) 50%,
+            rgba(0, 0, 0, 0.2));
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.6;
+}
+
+/* Animations */
+@keyframes slideIn {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+        clip-path: inset(0 0 100% 0);
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+        clip-path: inset(0 0 0 0);
+    }
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+        filter: drop-shadow(0 0 10px #fcee0a);
+    }
+}
+
+@keyframes glitch {
+    0% {
+        transform: translate(0);
+    }
+
+    20% {
+        transform: translate(-2px, 2px);
+    }
+
+    40% {
+        transform: translate(-2px, -2px);
+    }
+
+    60% {
+        transform: translate(2px, 2px);
+    }
+
+    80% {
+        transform: translate(2px, -2px);
+    }
+
+    100% {
+        transform: translate(0);
+    }
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: scale(0.7) translateY(-50px);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes bikerSlide {
+    0% {
+        left: -150px;
+    }
+
+    100% {
+        left: 100%;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.animate-slideIn {
+    animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-pulse-cyber {
+    animation: pulse 1.5s infinite;
+}
+
+.animate-glitch {
+    animation: glitch 0.2s infinite;
+}
+
 .animate-modalSlideIn {
     animation: modalSlideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 .fill-mode-forwards {
     animation-fill-mode: forwards;
+}
+
+/* Tutorial Overlay & Panel */
+#tutorial-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9998;
+    pointer-events: auto;
+    animation: fadeIn 0.3s ease-out;
+    display: none;
+}
+
+#tutorial-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 700px;
+    max-height: 80vh;
+    background: var(--color-cp-bg);
+    border: 3px solid var(--color-cp-cyan);
+    box-shadow: 0 0 40px rgba(0, 240, 255, 0.5);
+    display: none;
+    flex-direction: column;
+    z-index: 9999;
+    animation: modalSlideIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    pointer-events: auto;
+}
+
+.tutorial-header {
+    background: rgba(0, 240, 255, 0.1);
+    border-bottom: 2px solid var(--color-cp-cyan);
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tutorial-header h2 {
+    color: var(--color-cp-cyan);
+    margin: 0;
+    font-size: 1.8rem;
+    text-shadow: 0 0 10px var(--color-cp-cyan);
+    font-family: var(--font-family-cyber);
+}
+
+#tutorial-close-btn {
+    background: transparent;
+    border: 2px solid var(--color-cp-red);
+    color: var(--color-cp-red);
+    font-size: 2rem;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    transition: all 0.3s;
+    line-height: 1;
+    font-weight: bold;
+}
+
+#tutorial-close-btn:hover {
+    background: var(--color-cp-red);
+    color: #fff;
+    transform: rotate(90deg);
+}
+
+.tutorial-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    color: #fff;
+}
+
+.tutorial-body h3 {
+    color: var(--color-cp-yellow);
+    text-align: center;
+    margin-top: 0;
+    font-size: 1.3rem;
+    text-shadow: 0 0 10px var(--color-cp-yellow);
+    font-family: var(--font-family-cyber);
+}
+
+.tutorial-body h4 {
+    color: var(--color-cp-cyan);
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+    font-family: var(--font-family-cyber);
+}
+
+.tutorial-body p {
+    line-height: 1.6;
+    margin: 10px 0;
+    color: #ccc;
+}
+
+.tutorial-body ul {
+    list-style: none;
+    padding: 0;
+    margin: 15px 0;
+}
+
+.tutorial-body li {
+    padding: 10px;
+    margin: 8px 0;
+    border-left: 3px solid var(--color-cp-cyan);
+    line-height: 1.5;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.tutorial-body .highlight {
+    color: var(--color-cp-yellow);
+    font-weight: bold;
+}
+
+.tutorial-body .tip {
+    background: rgba(252, 238, 10, 0.1);
+    border: 1px solid var(--color-cp-yellow);
+    padding: 10px;
+    margin: 20px 0;
+    color: var(--color-cp-yellow);
+    font-style: italic;
+    text-align: center;
+}
+
+#tutorial-ok-btn {
+    width: 100%;
+    margin-top: 20px;
+    padding: 12px;
+    font-size: 1.1rem;
+}
+
+.tutorial-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.tutorial-body::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.tutorial-body::-webkit-scrollbar-thumb {
+    background: var(--color-cp-yellow);
+    border-radius: 3px;
+}
+
+.tutorial-body::-webkit-scrollbar-thumb:hover {
+    background: var(--color-cp-cyan);
+}
+
+/* Help Button */
+#help-btn {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    background: var(--color-cp-cyan);
+    color: var(--color-cp-black);
+    border: 2px solid var(--color-cp-cyan);
+    border-radius: 50%;
+    font-size: 1.8rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+    pointer-events: auto;
+}
+
+#help-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 30px rgba(0, 240, 255, 0.8);
 }

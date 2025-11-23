@@ -10,6 +10,7 @@ export class Interface {
   private lastActiveMissions: any[] = [];
   private lastAvailableMissions: any[] = [];
 
+
   constructor() {
     this.container = document.getElementById('ui-layer')!;
     this.hudContainer = document.createElement('div');
@@ -21,6 +22,12 @@ export class Interface {
     this.setupHUD();
     this.setupListeners();
     this.setupStoreSubscription();
+
+    // Show tutorial on first load
+    const tutorialSeen = localStorage.getItem('tutorial-seen');
+    if (!tutorialSeen) {
+      setTimeout(() => this.showTutorial(), 1000);
+    }
   }
 
   private setupHUD() {
@@ -40,9 +47,18 @@ export class Interface {
           <div class="text-xl font-bold text-cp-yellow uppercase flex items-center font-cyber">
             MEMBERS: <span id="hud-members" class="text-white ml-2">0</span>
           </div>
+          <button id="tutorial-btn" class="cyber-btn text-xs" title="Show Tutorial">?</button>
         </div>
       </header>
     `;
+
+    // Add tutorial button listener
+    setTimeout(() => {
+      document.getElementById('tutorial-btn')?.addEventListener('click', () => {
+        audioManager.playClick();
+        this.showTutorial();
+      });
+    }, 100);
   }
 
   private setupListeners() {
@@ -102,10 +118,106 @@ export class Interface {
     });
   }
 
+  private createOverlay(): HTMLElement {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black/95 flex justify-center items-center z-[10001] animate-[fadeIn_0.3s] pointer-events-auto';
+
+    // Stop propagation of pointer events to prevent clicking through to the game
+    const stopEvent = (e: Event) => e.stopPropagation();
+    overlay.addEventListener('pointerdown', stopEvent);
+    overlay.addEventListener('mousedown', stopEvent);
+    overlay.addEventListener('touchstart', stopEvent);
+    overlay.addEventListener('click', stopEvent);
+
+    return overlay;
+  }
+
+  private showTutorial() {
+    const overlay = this.createOverlay();
+    overlay.id = 'tutorial-overlay';
+
+    const modal = document.createElement('div');
+    modal.className = 'bg-cp-bg border-[3px] border-cp-cyan shadow-[0_0_40px_rgba(0,240,255,0.5)] w-[90%] max-w-[700px] max-h-[80vh] flex flex-col animate-modalSlideIn pointer-events-auto';
+
+    modal.innerHTML = `
+      <div class="bg-cp-cyan/10 border-b-2 border-cp-cyan p-5 flex justify-between items-center shrink-0">
+        <h2 class="text-cp-cyan m-0 text-3xl drop-shadow-[0_0_10px_var(--cp-cyan)] font-cyber font-bold">WELCOME TO NIGHT CITY</h2>
+        <button id="close-tutorial" class="bg-transparent border-2 border-cp-red text-cp-red text-3xl w-10 h-10 cursor-pointer transition-all duration-300 hover:bg-cp-red hover:text-white hover:rotate-90 flex items-center justify-center font-bold">&times;</button>
+      </div>
+      
+      <div class="p-5 overflow-y-auto flex-1 text-white">
+        <h3 class="text-cp-yellow text-center text-xl mb-4 font-cyber">DOMINATE THE STREETS</h3>
+        
+        <div class="space-y-4">
+          <div class="bg-black/40 p-4 border-l-4 border-cp-cyan">
+            <h4 class="text-cp-cyan font-bold font-cyber mb-2">YOUR GOAL</h4>
+            <p class="text-gray-300">Build the most powerful biker gang in Night City. Recruit members, complete missions, and capture territories.</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-black/40 p-3 border border-cp-yellow/30">
+              <h4 class="text-cp-yellow font-bold font-cyber mb-2">RESOURCES</h4>
+              <ul class="text-sm text-gray-400 space-y-1">
+                <li><span class="text-white">€ EDDIES:</span> Cash for hiring & upgrades</li>
+                <li><span class="text-white">XP:</span> Level up your members</li>
+                <li><span class="text-white">REP:</span> Global reputation</li>
+              </ul>
+            </div>
+            
+            <div class="bg-black/40 p-3 border border-cp-red/30">
+              <h4 class="text-cp-red font-bold font-cyber mb-2">LOCATIONS</h4>
+              <ul class="text-sm text-gray-400 space-y-1">
+                <li><span class="text-cp-cyan">HQ (Blue):</span> Missions & Management</li>
+                <li><span class="text-cp-red">Bar (Red):</span> Recruit Mercs</li>
+                <li><span class="text-cp-cyan">Ripperdoc (Cyan):</span> Heal & Upgrade</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="bg-black/40 p-4 border-l-4 border-cp-yellow">
+            <h4 class="text-cp-yellow font-bold font-cyber mb-2">GAMEPLAY LOOP</h4>
+            <ol class="list-decimal list-inside text-gray-300 space-y-2">
+              <li>Visit the <span class="text-cp-red">Bar</span> to hire your first crew member.</li>
+              <li>Go to <span class="text-cp-cyan">HQ</span> and send them on missions.</li>
+              <li>Earn Eddies to hire more crew or upgrade them.</li>
+              <li>Capture territories for passive income!</li>
+            </ol>
+          </div>
+        </div>
+
+        <button id="tutorial-ok-btn" class="cyber-btn w-full mt-6 text-xl">I'M READY</button>
+      </div>
+    `;
+
+    overlay.appendChild(modal);
+    this.modalContainer.appendChild(overlay);
+
+    const close = () => {
+      overlay.remove();
+      localStorage.setItem('tutorial-seen', 'true');
+    };
+
+    modal.querySelector('#close-tutorial')?.addEventListener('click', () => {
+      audioManager.playClick();
+      close();
+    });
+
+    modal.querySelector('#tutorial-ok-btn')?.addEventListener('click', () => {
+      audioManager.playClick();
+      close();
+    });
+  }
+
   private openMissionBoard() {
     this.modalContainer.innerHTML = '';
-    const overlay = document.createElement('div');
-    overlay.className = 'fixed inset-0 bg-black/90 flex justify-center items-center z-[10000] animate-[fadeIn_0.3s]';
+    const overlay = this.createOverlay();
+
+    // Prevent clicks from passing through to underlying elements
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    });
 
     const modal = document.createElement('div');
     modal.className = 'bg-cp-bg border-[3px] border-cp-cyan shadow-[0_0_40px_rgba(0,240,255,0.5)] w-[90%] max-w-[1000px] h-[85vh] flex flex-col animate-modalSlideIn pointer-events-auto';
@@ -304,8 +416,14 @@ export class Interface {
   }
 
   private openMissionDetail(mission: Mission) {
-    const overlay = document.createElement('div');
-    overlay.className = 'fixed inset-0 bg-black/95 flex justify-center items-center z-[10001] animate-[fadeIn_0.3s]';
+    const overlay = this.createOverlay();
+
+    // Prevent clicks from passing through
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    });
 
     const modal = document.createElement('div');
     modal.className = 'bg-cp-bg border-[3px] border-cp-cyan shadow-[0_0_40px_rgba(0,240,255,0.5)] w-[90%] max-w-[1000px] h-[90vh] flex flex-col animate-modalSlideIn pointer-events-auto';
@@ -545,7 +663,7 @@ export class Interface {
       audioManager.playClick();
       if (selectedMemberIds.length > 0) {
         // Play animation
-        bikerAnim.style.animation = 'bikerSlide 4s linear forwards';
+        bikerAnim.style.animation = 'bikerSlide 1.5s linear forwards';
 
         // Disable button
         sendBtn.disabled = true;
@@ -557,8 +675,8 @@ export class Interface {
           if (result.success) {
             audioManager.playPurchase();
             this.showToast('MISSION STARTED', 'success');
-            overlay.remove();
-            this.modalContainer.innerHTML = ''; // Close main board too
+            sendBtn.textContent = 'SENT!';
+            // Panel stays open - user can close manually with X button
           } else {
             this.showToast(result.reason || 'FAILED', 'error');
             sendBtn.disabled = false;
@@ -600,8 +718,14 @@ export class Interface {
   }
 
   private async openAfterlife() {
-    const overlay = document.createElement('div');
-    overlay.className = 'fixed inset-0 bg-black/95 flex justify-center items-center z-[10001] animate-[fadeIn_0.3s]';
+    const overlay = this.createOverlay();
+
+    // Prevent clicks from passing through
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    });
 
     const modal = document.createElement('div');
     modal.className = 'bg-cp-bg border-[3px] border-cp-red shadow-[0_0_40px_rgba(255,0,60,0.5)] w-[90%] max-w-[600px] max-h-[85vh] flex flex-col animate-modalSlideIn pointer-events-auto';
@@ -653,8 +777,14 @@ export class Interface {
   }
 
   private openRipperdoc() {
-    const overlay = document.createElement('div');
-    overlay.className = 'fixed inset-0 bg-black/95 flex justify-center items-center z-[10001] animate-[fadeIn_0.3s]';
+    const overlay = this.createOverlay();
+
+    // Prevent clicks from passing through
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    });
 
     const modal = document.createElement('div');
     modal.className = 'bg-cp-bg border-[3px] border-cp-cyan shadow-[0_0_40px_rgba(0,240,255,0.5)] w-[90%] max-w-[900px] max-h-[85vh] flex flex-col animate-modalSlideIn pointer-events-auto';
@@ -951,8 +1081,14 @@ export class Interface {
 
     const territory = state.territories.find(t => t.id === territoryId)!;
 
-    const dialog = document.createElement('div');
-    dialog.className = 'fixed inset-0 bg-black/95 flex justify-center items-center z-[10002] animate-[fadeIn_0.3s]';
+    const dialog = this.createOverlay();
+
+    // Prevent clicks from passing through
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog) {
+        dialog.remove();
+      }
+    });
 
     const modal = document.createElement('div');
     modal.className = 'bg-cp-bg border-[3px] border-cp-red shadow-[0_0_40px_rgba(255,0,60,0.5)] w-[90%] max-w-[600px] max-h-[85vh] flex flex-col animate-modalSlideIn pointer-events-auto';
@@ -1000,7 +1136,7 @@ export class Interface {
         else successChance = Math.round(((ratio - 0.5) / 1.0) * 100);
       }
 
-      chanceEl.textContent = `${successChance}%`;
+      chanceEl.textContent = `${successChance}% `;
       chanceEl.style.color = successChance >= 80 ? 'lime' : successChance >= 50 ? 'var(--color-cp-yellow)' : 'var(--color-cp-red)';
     };
 
@@ -1009,9 +1145,9 @@ export class Interface {
       memberEl.className = 'flex items-center gap-3 p-2 bg-black/40 border border-cp-cyan/30 cursor-pointer hover:bg-cp-cyan/10';
 
       memberEl.innerHTML = `
-        <input type="checkbox" value="${member.id}" class="w-5 h-5" data-power="${10 + (member.stats.cool * 2) + (member.stats.reflex * 2) + (member.level * 5)}">
-        <span class="flex-1 font-cyber">${member.name} (LVL ${member.level} - COOL:${member.stats.cool} REF:${member.stats.reflex})</span>
-      `;
+        < input type = "checkbox" value = "${member.id}" class="w-5 h-5" data - power="${10 + (member.stats.cool * 2) + (member.stats.reflex * 2) + (member.level * 5)}" >
+          <span class="flex-1 font-cyber" > ${member.name} (LVL ${member.level} - COOL:${member.stats.cool} REF:${member.stats.reflex})</span>
+            `;
 
       const checkbox = memberEl.querySelector('input') as HTMLInputElement;
       checkbox.addEventListener('change', () => {
@@ -1054,4 +1190,6 @@ export class Interface {
       this.openMissionBoard();
     });
   }
+
+
 }
