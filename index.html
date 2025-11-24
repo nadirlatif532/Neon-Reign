@@ -1,99 +1,131 @@
-margin: 0;
-padding: 0;
-overflow: hidden;
-}
+<!DOCTYPE html>
+<html lang="en">
 
-#loading-screen {
-position: fixed;
-top: 0;
-left: 0;
-width: 100%;
-height: 100%;
-background-color: #000;
-z-index: 100000;
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-font-family: 'Courier New', monospace;
-}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biker Management Sim</title>
+    <style>
+        /* Critical inline CSS to prevent FOUC */
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+        }
 
-.loading-text {
-color: #fcee0a;
-font-size: 2.25rem;
-margin-bottom: 2rem;
-letter-spacing: 0.1em;
-text-shadow: 0 0 10px #fcee0a;
-animation: pulse 1.5s infinite;
-}
+        /* Hide everything except loading screen initially */
+        #app,
+        #ui-layer,
+        #footer-log,
+        #tutorial-overlay,
+        #settings-overlay {
+            visibility: hidden;
+        }
 
-.loading-bar-container {
-width: 24rem;
-height: 1rem;
-border: 2px solid #00f0ff;
-padding: 0.25rem;
-position: relative;
-box-shadow: 0 0 10px #00f0ff;
-}
+        /* Show loading screen immediately */
+        #loading-screen {
+            visibility: visible;
+        }
 
-#loading-bar {
-height: 100%;
-background-color: #00f0ff;
-width: 0%;
-transition: width 0.2s;
-box-shadow: 0 0 5px #00f0ff;
-}
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
 
-.loading-subtext {
-margin-top: 1rem;
-color: #00f0ff;
-font-size: 0.875rem;
-text-shadow: 0 0 5px #00f0ff;
-animation: glitch 0.2s infinite;
-}
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            z-index: 100000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Courier New', monospace;
+        }
 
-@keyframes pulse {
+        .loading-text {
+            color: #fcee0a;
+            font-size: 2.25rem;
+            margin-bottom: 2rem;
+            letter-spacing: 0.1em;
+            text-shadow: 0 0 10px #fcee0a;
+            animation: pulse 1.5s infinite;
+        }
 
-0%,
-100% {
-opacity: 1;
-}
+        .loading-bar-container {
+            width: 24rem;
+            height: 1rem;
+            border: 2px solid #00f0ff;
+            padding: 0.25rem;
+            position: relative;
+            box-shadow: 0 0 10px #00f0ff;
+        }
 
-50% {
-opacity: 0.5;
-}
-}
+        #loading-bar {
+            height: 100%;
+            background-color: #00f0ff;
+            width: 0%;
+            transition: width 0.2s;
+            box-shadow: 0 0 5px #00f0ff;
+        }
 
-@keyframes glitch {
-0% {
-transform: translate(0);
-}
+        .loading-subtext {
+            margin-top: 1rem;
+            color: #00f0ff;
+            font-size: 0.875rem;
+            text-shadow: 0 0 5px #00f0ff;
+            animation: glitch 0.2s infinite;
+        }
 
-20% {
-transform: translate(-2px, 2px);
-}
+        @keyframes pulse {
 
-40% {
-transform: translate(-2px, -2px);
-}
+            0%,
+            100% {
+                opacity: 1;
+            }
 
-60% {
-transform: translate(2px, 2px);
-}
+            50% {
+                opacity: 0.5;
+            }
+        }
 
-80% {
-transform: translate(2px, -2px);
-}
+        @keyframes glitch {
+            0% {
+                transform: translate(0);
+            }
 
-100% {
-transform: translate(0);
-}
-}
-</style>
-  <script type="module" crossorigin src="/assets/index-CQngSP2p.js"></script>
+            20% {
+                transform: translate(-2px, 2px);
+            }
+
+            40% {
+                transform: translate(-2px, -2px);
+            }
+
+            60% {
+                transform: translate(2px, 2px);
+            }
+
+            80% {
+                transform: translate(2px, -2px);
+            }
+
+            100% {
+                transform: translate(0);
+            }
+        }
+    </style>
+  <script type="module" crossorigin src="/assets/index-DlK3OfX6.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/phaser-B2I5zoyM.js">
   <link rel="modulepreload" crossorigin href="/assets/vendor-CsYgAULC.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-pu4Kf01r.css">
+  <link rel="stylesheet" crossorigin href="/assets/index-C27j6z8o.css">
 </head>
 
 <body>
@@ -149,7 +181,7 @@ transform: translate(0);
                         <div class="bg-black/40 p-3 border border-cp-red/30">
                             <h4 class="text-cp-red font-bold font-cyber mb-2">LOCATIONS</h4>
                             <ul class="text-sm text-gray-400 space-y-1">
-                                <li><span class="text-cp-cyan">HQ (Blue):</span> Missions &amp; Management</li>
+                                <li><span class="text-cp-yellow">Hideout (Yellow):</span> Missions &amp; Management</li>
                                 <li><span class="text-cp-red">Bar (Red):</span> Recruit Mercs</li>
                                 <li><span class="text-cp-cyan">Ripperdoc (Cyan):</span> Heal &amp; Upgrade</li>
                             </ul>
@@ -262,6 +294,16 @@ transform: translate(0);
         document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('tutorial-close-btn')?.addEventListener('click', window.hideTutorial);
             document.getElementById('tutorial-ok-btn')?.addEventListener('click', window.hideTutorial);
+        });
+
+        // Show game elements after external CSS is loaded
+        window.addEventListener('load', function () {
+            // Make game elements visible after full load
+            const gameElements = ['app', 'ui-layer', 'footer-log', 'tutorial-overlay', 'settings-overlay'];
+            gameElements.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.visibility = 'visible';
+            });
         });
     </script>
 
