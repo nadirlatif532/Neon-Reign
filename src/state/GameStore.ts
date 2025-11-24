@@ -63,7 +63,7 @@ export interface Territory {
     name: string;
     controlled: boolean;
     income: number;
-    rivalGang?: boolean;
+    rivalGang?: string | null;
 }
 
 export interface GameState {

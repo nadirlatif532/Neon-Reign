@@ -1,6 +1,7 @@
 import { gameStore, startMission, refreshMissions, Mission, addEddies, recruitMember, healMember, upgradeMember, captureTerritory, rivalGangManager, attackTerritory, RIDER_CLASSES, removeEncounter } from '@/state/GameStore';
 import { AsciiGenerator } from '@/utils/AsciiGenerator';
 import { audioManager } from '../managers/AudioManager';
+import { saveManager } from '@/managers/SaveManager';
 import { encounterManager } from '@/managers/EncounterManager';
 import { ENCOUNTERS } from '@/data/Encounters';
 
@@ -11,6 +12,7 @@ export class Interface {
   private activeTab: string = 'missions';
   private lastActiveMissions: any[] = [];
   private lastAvailableMissions: any[] = [];
+  private lastTerritories: any[] = [];
   private flavorTexts: string[] = [
     "WARNING: RELIC MALFUNCTION DETECTED",
     "DON'T FORGET TO FEED YOUR CAT",
@@ -151,43 +153,24 @@ export class Interface {
         this.saveSettings();
       });
 
-      // Reset progress button
+      // Reset progress button - shows confirmation modal on click
       const resetBtn = document.getElementById('reset-progress-btn');
-      let resetConfirmTimeout: number | null = null;
-      let isWaitingConfirm = false;
 
       resetBtn?.addEventListener('click', () => {
-        if (!isWaitingConfirm) {
-          isWaitingConfirm = true;
-          resetBtn.textContent = 'ARE YOU SURE?';
-          resetBtn.classList.add('bg-cp-red/60', 'animate-pulse');
+        audioManager.playError();
+
+        // Show custom confirmation modal
+        this.showResetConfirmationModal(() => {
           audioManager.playError();
-
-          resetConfirmTimeout = window.setTimeout(() => {
-            isWaitingConfirm = false;
-            resetBtn.textContent = 'RESET PROGRESS';
-            resetBtn.classList.remove('bg-cp-red/60', 'animate-pulse');
-          }, 3000);
-        } else {
-          if (resetConfirmTimeout) clearTimeout(resetConfirmTimeout);
-
-          if (confirm('This will permanently delete all your progress. Are you absolutely sure?')) {
-            audioManager.playError();
-            this.resetGame();
-            settingsOverlay.classList.add('tutorial-hidden');
-            this.showToast('GAME RESET COMPLETE', 'success');
-          }
-
-          isWaitingConfirm = false;
-          resetBtn.textContent = 'RESET PROGRESS';
-          resetBtn.classList.remove('bg-cp-red/60', 'animate-pulse');
-        }
+          this.resetGame();
+          settingsOverlay.classList.add('tutorial-hidden');
+          this.showToast('GAME RESET COMPLETE', 'success');
+        });
       });
     }
   }
 
   private saveSettings() {
-    const { saveManager } = require('@/managers/SaveManager');
     saveManager.saveSettings({
       musicVolume: audioManager.getMusicVolume(),
       sfxVolume: audioManager.getSfxVolume(),
@@ -197,13 +180,64 @@ export class Interface {
   }
 
   private resetGame() {
-    const { saveManager } = require('@/managers/SaveManager');
+    // Use forceReset which prevents save-on-unload and clears everything
+    saveManager.forceReset();
 
-    // Clear save data
-    saveManager.clearSaveData();
+    console.log('[Interface] Game reset complete, reloading...');
 
     // Reload page to reset to initial state
     window.location.reload();
+  }
+
+  private showResetConfirmationModal(onConfirm: () => void) {
+    const overlay = this.createOverlay();
+    // Increase z-index to appear above settings panel
+    overlay.style.zIndex = '100000';
+    const modal = document.createElement('div');
+    modal.className = 'bg-cp-bg border-[3px] border-cp-red shadow-[0_0_60px_rgba(255,0,0,0.8)] w-[90%] max-w-[500px] flex flex-col animate-modalSlideIn pointer-events-auto';
+
+    modal.innerHTML = `
+      <div class="bg-cp-red/20 border-b-2 border-cp-red p-5">
+        <h2 class="text-cp-red m-0 text-3xl drop-shadow-[0_0_10px_var(--cp-red)] font-cyber font-bold uppercase text-center animate-pulse">⚠ WARNING ⚠</h2>
+      </div>
+      
+      <div class="p-6">
+        <p class="text-white text-lg mb-6 font-cyber leading-relaxed border-l-4 border-cp-red pl-4 bg-black/30 p-4">
+          This will <span class="text-cp-red font-bold">PERMANENTLY DELETE</span> all your progress, including:
+        </p>
+        
+        <ul class="text-gray-300 mb-6 space-y-2 font-cyber ml-4">
+          <li>• All gang members and upgrades</li>
+          <li>• All eddies and reputation</li>
+          <li>• All territories and completed missions</li>
+          <li>• All game settings</li>
+        </ul>
+
+        <p class="text-cp-yellow text-base font-cyber text-center font-bold mb-4 animate-pulse">
+          ARE YOU ABSOLUTELY SURE?
+        </p>
+      </div>
+
+      <div class="border-t-2 border-cp-red p-5 flex gap-3">
+        <button id="cancel-reset" class="cyber-btn flex-1 py-3 text-lg bg-gray-700 hover:bg-gray-600">CANCEL</button>
+        <button id="confirm-reset" class="cyber-btn flex-1 py-3 text-lg bg-cp-red/80 hover:bg-cp-red text-white animate-pulse">DELETE EVERYTHING</button>
+      </div>
+    `;
+
+    overlay.appendChild(modal);
+    // Append to document body to ensure it's above everything
+    document.body.appendChild(overlay);
+
+    modal.querySelector('#cancel-reset')?.addEventListener('click', () => {
+      audioManager.playClick();
+      overlay.remove();
+    });
+
+    modal.querySelector('#confirm-reset')?.addEventListener('click', () => {
+      audioManager.playClick();
+      overlay.remove();
+      onConfirm();
+    });
   }
 
 
@@ -286,12 +320,20 @@ export class Interface {
 
       // Update Mission Board if open and on missions tab
       const tabContent = document.getElementById('tab-content');
-      if (tabContent && this.activeTab === 'missions') {
-        // Check if we need to re-render (simple reference check)
-        if (state.activeMissions !== this.lastActiveMissions || state.availableMissions !== this.lastAvailableMissions) {
-          this.lastActiveMissions = state.activeMissions;
-          this.lastAvailableMissions = state.availableMissions;
-          this.renderMissionsTab(tabContent);
+      if (tabContent) {
+        if (this.activeTab === 'missions') {
+          // Check if we need to re-render (simple reference check)
+          if (state.activeMissions !== this.lastActiveMissions || state.availableMissions !== this.lastAvailableMissions) {
+            this.lastActiveMissions = state.activeMissions;
+            this.lastAvailableMissions = state.availableMissions;
+            this.renderMissionsTab(tabContent);
+          }
+        } else if (this.activeTab === 'territories' || this.activeTab === 'gangs') {
+          if (state.territories !== this.lastTerritories) {
+            this.lastTerritories = state.territories;
+            if (this.activeTab === 'territories') this.renderTerritoryTab(tabContent);
+            if (this.activeTab === 'gangs') this.renderGangsTab(tabContent);
+          }
         }
       }
 
@@ -1205,6 +1247,7 @@ export class Interface {
   // HQ Tab Rendering Methods
 
   private renderRosterTab(container: Element) {
+    container.innerHTML = '';
     const state = gameStore.get();
 
     // Bike animation section
@@ -1274,7 +1317,7 @@ export class Interface {
 
     const header = document.createElement('div');
     header.className = 'mb-4';
-    header.innerHTML = '<h3 class="text-cp-yellow font-cyber text-xl mb-2">NIGHT CITY DISTRICTS</h3><p class="text-gray-400">Capture territories for passive income</p>';
+    header.innerHTML = '<h3 class="text-cp-yellow font-cyber text-xl mb-2">NIGHT CITY DISTRICTS</h3><p class="text-gray-400">Territory status overview</p>';
     container.appendChild(header);
 
     state.territories.forEach((t, index) => {
@@ -1283,7 +1326,6 @@ export class Interface {
       div.style.animationDelay = `${index * 0.1}s`;
       div.classList.add('animate-slideIn', 'opacity-0', 'fill-mode-forwards');
 
-      const cost = t.income * 10;
       const rivalGang = t.rivalGang ? rivalGangManager.getGangByTerritory(t.id) : null;
 
       div.innerHTML = `
@@ -1297,39 +1339,37 @@ export class Interface {
           ? '<span class="text-green-500 font-bold border border-green-500 px-2 py-1">✓ CONTROLLED</span>'
           : rivalGang
             ? `<span class="text-cp-red font-bold border border-cp-red px-2 py-1">⚔ ${rivalGang.name}</span>`
-            : `<button class="cyber-btn small-btn text-xs" data-id="${t.id}">CAPTURE (${cost}€)</button>`
+            : `<span class="text-gray-500 font-bold border border-gray-500 px-2 py-1">UNCLAIMED</span>`
         }
           </div>
         </div>
       `;
-
-      if (!t.controlled && !rivalGang) {
-        const btn = div.querySelector('button');
-        btn?.addEventListener('click', () => {
-          audioManager.playClick();
-          if (captureTerritory(t.id)) {
-            audioManager.playPurchase();
-            this.showToast(`${t.name} CAPTURED!`, 'success');
-            this.renderTerritoryTab(container); // Re-render immediately
-          } else {
-            this.showToast('INSUFFICIENT FUNDS', 'error');
-          }
-        });
-      }
 
       container.appendChild(div);
     });
   }
 
   private renderGangsTab(container: Element) {
+    container.innerHTML = '';
     const header = document.createElement('div');
     header.className = 'mb-4';
-    header.innerHTML = '<h3 class="text-cp-yellow font-cyber text-xl mb-2">RIVAL GANGS</h3><p class="text-gray-400">Attack rival territories to expand your empire</p>';
+    header.innerHTML = '<h3 class="text-cp-yellow font-cyber text-xl mb-2">WARFARE</h3><p class="text-gray-400">Expand your territory and eliminate rivals</p>';
     container.appendChild(header);
+
+    const state = gameStore.get();
+
+    // --- Unclaimed Territories Section Removed ---
+    // All territories are now owned by rival gangs at start
+
+
+    // --- Rival Gangs Section ---
+    const gangsHeader = document.createElement('div');
+    gangsHeader.className = 'text-cp-red font-cyber text-sm mb-2 mt-6 border-b border-cp-red/50 pb-1';
+    gangsHeader.textContent = 'RIVAL GANGS';
+    container.appendChild(gangsHeader);
 
     const gangs = rivalGangManager.getGangInfo();
     console.log('Rendering Gangs Tab. Gangs:', gangs);
-    const state = gameStore.get();
 
     if (gangs.length === 0) {
       const notice = document.createElement('div');

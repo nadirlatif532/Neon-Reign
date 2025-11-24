@@ -24,16 +24,44 @@ export class RivalGangManager {
 
         // Create initial rival gangs
         this.gangs = [
-            this.createGang('MAELSTROM', 'aggressive', 2),
-            this.createGang('TYGER CLAWS', 'balanced', 1),
-            this.createGang('VALENTINOS', 'defensive', 1)
+            this.createGang('MAELSTROM', 'aggressive'),
+            this.createGang('TYGER CLAWS', 'balanced'),
+            this.createGang('VALENTINOS', 'defensive')
         ];
 
         this.initialized = true;
+
+        // Clear any old rival gang data from territories (fix for ghost gangs from save data)
+        const state = this.gameStore.get();
+        state.territories.forEach((t: any) => {
+            if (t.rivalGang) {
+                t.rivalGang = null;
+            }
+        });
+
+        // Assign ALL territories to gangs round-robin
+        const allTerritories = state.territories;
+        allTerritories.forEach((territory: any, index: number) => {
+            const gangIndex = index % this.gangs.length;
+            const gang = this.gangs[gangIndex];
+
+            territory.rivalGang = gang.id;
+            territory.controlled = false; // Ensure not player controlled
+            gang.territories.push(territory.id);
+            console.log(`Assigned ${territory.name} to ${gang.name}`);
+        });
+
+        // Update strengths after assignment
+        this.gangs.forEach(g => this.updateGangStrength(g));
+
+        // Persist the changes to the store
+        this.gameStore.setKey('territories', [...this.gameStore.get().territories]);
+
         this.startAI();
     }
 
-    private createGang(name: string, personality: 'aggressive' | 'balanced' | 'defensive', initialTerritories: number = 0): RivalGang {
+    private createGang(name: string, personality: 'aggressive' | 'balanced' | 'defensive'): RivalGang {
+        console.log(`Creating gang ${name}`);
         const gang: RivalGang = {
             id: Math.random().toString(36).substr(2, 9),
             name,
@@ -43,17 +71,6 @@ export class RivalGangManager {
             aggression: personality === 'aggressive' ? 0.7 : personality === 'balanced' ? 0.5 : 0.3
         };
 
-        // Assign initial territories
-        const state = this.gameStore.get();
-        const uncontrolled = state.territories.filter((t: any) => !t.controlled && !t.rivalGang);
-
-        for (let i = 0; i < initialTerritories && i < uncontrolled.length; i++) {
-            const territory = uncontrolled[i];
-            territory.rivalGang = gang.id;
-            gang.territories.push(territory.id);
-        }
-
-        this.updateGangStrength(gang);
         return gang;
     }
 
@@ -85,22 +102,11 @@ export class RivalGangManager {
     }
 
     private attemptTerritoryCapture(gang: RivalGang) {
-        const state = this.gameStore.get();
-        const uncontrolled = state.territories.filter((t: any) => !t.controlled && !t.rivalGang);
+        // Gangs now only attack player or other gangs, as there are no unclaimed
 
-        if (uncontrolled.length === 0) return;
-
-        const target = uncontrolled[Math.floor(Math.random() * uncontrolled.length)];
-        target.rivalGang = gang.id;
-        gang.territories.push(target.id);
-        this.updateGangStrength(gang);
-
-        window.dispatchEvent(new CustomEvent('game-event', {
-            detail: {
-                message: `${gang.name} CAPTURED ${target.name}!`,
-                type: 'bad'
-            }
-        }));
+        // Logic for gang-vs-gang or gang-vs-player could go here
+        // For now, let's keep it simple: they fortify
+        gang.strength += 10;
     }
 
     attemptRetaliation() {
@@ -120,13 +126,17 @@ export class RivalGangManager {
             target.controlled = false;
             target.rivalGang = attacker.id;
             attacker.territories.push(target.id);
-            target.income = Math.floor(target.income * 1.2);
+            // Gangs also boost income when they retake it
+            target.income = Math.floor(target.income * 1.1);
             this.updateGangStrength(attacker);
             attacker.strength += 20;
 
+            // Trigger store update
+            this.gameStore.setKey('territories', [...state.territories]);
+
             window.dispatchEvent(new CustomEvent('game-event', {
                 detail: {
-                    message: `⚠ ${attacker.name} RETOOK ${target.name}! IT IS NOW HEAVILY FORTIFIED!`,
+                    message: `⚠ ${attacker.name} RETOOK ${target.name}!`,
                     type: 'bad'
                 }
             }));
@@ -156,6 +166,12 @@ export class RivalGangManager {
         if (success) {
             territory.rivalGang = null;
             territory.controlled = true;
+
+            // SIGNIFICANT INCOME BOOST
+            // Base boost + multiplier based on difficulty
+            const oldIncome = territory.income;
+            territory.income = Math.floor(territory.income * 3) + 50;
+
             gang.territories = gang.territories.filter(id => id !== territoryId);
             this.updateGangStrength(gang);
 
@@ -163,7 +179,7 @@ export class RivalGangManager {
                 this.eliminateGang(gang.id);
                 return {
                     success: true,
-                    message: `${territory.name} CAPTURED! ${gang.name} ELIMINATED!`,
+                    message: `${territory.name} CAPTURED! INCOME INCREASED (${oldIncome} -> ${territory.income})! ${gang.name} ELIMINATED!`,
                     eliminated: true,
                     loot: Math.floor(gangPower * 3)
                 };
@@ -171,23 +187,21 @@ export class RivalGangManager {
 
             return {
                 success: true,
-                message: `${territory.name} CAPTURED FROM ${gang.name}!`,
+                message: `${territory.name} CAPTURED! INCOME INCREASED (${oldIncome} -> ${territory.income})!`,
                 loot: Math.floor(gangPower * 2)
             };
         } else {
             let casualties = 0;
+            // STRICT FAILURE: ALL MEMBERS INJURED
             playerMembers.forEach(m => {
-                const damage = Math.floor(Math.random() * 30) + 10;
-                m.health = Math.max(0, m.health - damage);
-                if (m.health <= 0) {
-                    m.injured = true;
-                    casualties++;
-                }
+                m.health = 0; // Critical condition
+                m.injured = true;
+                casualties++;
             });
 
             return {
                 success: false,
-                message: `ATTACK ON ${territory.name} FAILED! ${casualties} MEMBER(S) INJURED.`,
+                message: `ATTACK FAILED! TOTAL DEFEAT. ALL MEMBERS CRITICALLY INJURED.`,
                 casualties
             };
         }
@@ -204,8 +218,7 @@ export class RivalGangManager {
                 if (availableNames.length > 0) {
                     const newGang = this.createGang(
                         availableNames[Math.floor(Math.random() * availableNames.length)],
-                        'balanced',
-                        0
+                        'balanced'
                     );
                     this.gangs.push(newGang);
 

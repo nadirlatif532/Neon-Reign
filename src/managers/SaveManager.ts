@@ -20,6 +20,7 @@ const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
 
 export class SaveManager {
     private autoSaveTimer: number | null = null;
+    private isResetting: boolean = false;
 
     constructor() {
         this.startAutoSave();
@@ -32,6 +33,12 @@ export class SaveManager {
      * Save current game state to localStorage
      */
     saveGame(): boolean {
+        // Don't save if we're in the middle of a reset
+        if (this.isResetting) {
+            console.log('[SaveManager] Skipping save during reset');
+            return false;
+        }
+
         try {
             const state = gameStore.get();
             const saveData: SaveData = {
@@ -89,6 +96,38 @@ export class SaveManager {
     clearSaveData(): void {
         localStorage.removeItem(SAVE_KEY);
         console.log('[SaveManager] Save data cleared');
+    }
+
+    /**
+     * Force reset - clears ALL localStorage and prevents save on unload
+     */
+    forceReset(): void {
+        console.log('[SaveManager] ═══════════════════════════════════');
+        console.log('[SaveManager] FORCE RESET INITIATED');
+        console.log('[SaveManager] ═══════════════════════════════════');
+
+        // Set flag to prevent any saves during reset
+        this.isResetting = true;
+        console.log('[SaveManager] isResetting flag set to TRUE');
+
+        // Stop auto-save immediately
+        this.stopAutoSave();
+        console.log('[SaveManager] Auto-save stopped');
+
+        // Log localStorage BEFORE clearing
+        console.log('[SaveManager] localStorage BEFORE clear:', JSON.stringify(localStorage));
+        console.log('[SaveManager] Save data exists:', localStorage.getItem(SAVE_KEY) !== null);
+
+        // Clear ALL localStorage (multiple times to be absolutely sure)
+        localStorage.clear();
+        localStorage.clear(); // Yes, twice for good measure
+
+        // Log localStorage AFTER clearing
+        console.log('[SaveManager] localStorage AFTER clear:', JSON.stringify(localStorage));
+        console.log('[SaveManager] Save data still exists:', localStorage.getItem(SAVE_KEY) !== null);
+
+        console.log('[SaveManager] Reset complete, reloading page...');
+        console.log('[SaveManager] ═══════════════════════════════════');
     }
 
     /**
