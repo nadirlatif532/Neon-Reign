@@ -113,6 +113,11 @@ export class CityScene extends Phaser.Scene {
     }
 
     private loadBackgroundVideo() {
+        if (this.isMobile) {
+            console.log('[CityScene] Mobile detected, skipping video background');
+            return;
+        }
+
         console.log('[CityScene] Lazy loading background video...');
 
         // Load video asynchronously
@@ -139,7 +144,7 @@ export class CityScene extends Phaser.Scene {
             // Start the video with 0 alpha
             this.bgVideo.setAlpha(0);
             this.bgVideo.play(true);
-            this.bgVideo.setVolume(0.15);
+            this.bgVideo.setVolume(0);
 
             // Fade in video while fading out static image
             this.tweens.add({

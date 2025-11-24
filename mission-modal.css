@@ -258,21 +258,6 @@
 }
 
 .selected-count {
-    color: var(--cp-yellow);
-    font-size: 1.2rem;
-    font-weight: bold;
-}
-
-#send-crew-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* Compact Mission Cards for list */
-.mission-card-compact {
-    background: rgba(0, 0, 0, 0.6);
-    border: 2px solid var(--cp-yellow);
-    padding: 15px;
     margin-bottom: 12px;
     cursor: pointer;
     transition: all 0.3s;
@@ -301,4 +286,79 @@
 
 .mission-card-compact:hover .mission-rewards-compact span {
     color: var(--cp-cyan);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .mission-modal {
+        width: 95%;
+        height: 90vh;
+        border-width: 2px;
+    }
+
+    .modal-header {
+        padding: 15px;
+    }
+
+    .modal-header h2 {
+        font-size: 1.4rem;
+    }
+
+    .mission-modal-body {
+        grid-template-columns: 1fr;
+        /* Stack columns */
+        padding: 15px;
+        gap: 15px;
+    }
+
+    .mission-details {
+        border-right: none;
+        border-bottom: 1px solid var(--cp-cyan);
+        padding-right: 0;
+        padding-bottom: 15px;
+    }
+
+    .mission-info-grid {
+        grid-template-columns: 1fr;
+        /* Stack info grid */
+    }
+
+    .crew-members {
+        max-height: 300px;
+        /* Reduce height on mobile */
+    }
+
+    .crew-member-card {
+        padding: 10px;
+    }
+
+    .member-avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+
+    .member-name {
+        font-size: 1rem;
+    }
+
+    .member-stats-row {
+        font-size: 0.75rem;
+    }
+
+    .modal-footer {
+        padding: 15px;
+        flex-direction: column;
+        /* Stack footer items */
+        gap: 15px;
+    }
+
+    .selected-count {
+        margin-bottom: 10px;
+    }
+
+    #send-crew-btn {
+        width: 100%;
+        padding: 12px;
+    }
 }

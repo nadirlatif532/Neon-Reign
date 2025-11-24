@@ -393,6 +393,182 @@ body {
     justify-content: center;
 }
 
+.animate-modalSlideIn {
+    animation: modalSlideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.fill-mode-forwards {
+    animation-fill-mode: forwards;
+}
+
+/* Tutorial Overlay & Panel */
+.tutorial-hidden {
+    display: none !important;
+}
+
+#tutorial-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 99999;
+    pointer-events: auto;
+    animation: fadeIn 0.3s ease-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#tutorial-panel {
+    width: 90%;
+    max-width: 700px;
+    max-height: 80vh;
+    background: var(--color-cp-bg);
+    border: 3px solid var(--color-cp-cyan);
+    box-shadow: 0 0 40px rgba(0, 240, 255, 0.5);
+    display: flex;
+    flex-direction: column;
+    animation: modalSlideIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    pointer-events: auto;
+}
+
+.tutorial-header {
+    background: rgba(0, 240, 255, 0.1);
+    border-bottom: 2px solid var(--color-cp-cyan);
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tutorial-header h2 {
+    color: var(--color-cp-cyan);
+    margin: 0;
+    font-size: 1.8rem;
+    text-shadow: 0 0 10px var(--color-cp-cyan);
+    font-family: var(--font-family-cyber);
+}
+
+#tutorial-close-btn {
+    background: transparent;
+    border: 2px solid var(--color-cp-red);
+    color: var(--color-cp-red);
+    font-size: 2rem;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    transition: all 0.3s;
+    line-height: 1;
+    font-weight: bold;
+}
+
+#tutorial-close-btn:hover {
+    background: var(--color-cp-red);
+    color: #fff;
+    transform: rotate(90deg);
+}
+
+.tutorial-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    color: #fff;
+}
+
+.tutorial-body h3 {
+    color: var(--color-cp-yellow);
+    text-align: center;
+    margin-top: 0;
+    font-size: 1.3rem;
+    text-shadow: 0 0 10px var(--color-cp-yellow);
+    font-family: var(--font-family-cyber);
+}
+
+.tutorial-body h4 {
+    color: var(--color-cp-cyan);
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+    font-family: var(--font-family-cyber);
+}
+
+.tutorial-body p {
+    line-height: 1.6;
+    margin: 10px 0;
+    color: #ccc;
+}
+
+.tutorial-body ul {
+    list-style: none;
+    padding: 0;
+    margin: 15px 0;
+}
+
+.tutorial-body li {
+    padding: 10px;
+    margin: 8px 0;
+    border-left: 3px solid var(--color-cp-cyan);
+    line-height: 1.5;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.tutorial-body .highlight {
+    color: var(--color-cp-yellow);
+    font-weight: bold;
+}
+
+.tutorial-body .tip {
+    background: rgba(252, 238, 10, 0.1);
+    border: 1px solid var(--color-cp-yellow);
+    padding: 10px;
+    margin: 20px 0;
+    color: var(--color-cp-yellow);
+    font-style: italic;
+    text-align: center;
+}
+
+#tutorial-ok-btn {
+    width: 100%;
+    margin-top: 20px;
+    padding: 12px;
+    font-size: 1.1rem;
+}
+
+.tutorial-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.tutorial-body::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.tutorial-body::-webkit-scrollbar-thumb {
+    background: var(--color-cp-yellow);
+    border-radius: 3px;
+}
+
+.tutorial-body::-webkit-scrollbar-thumb:hover {
+    background: var(--color-cp-cyan);
+}
+
+/* Settings Overlay */
+#settings-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 99999;
+    pointer-events: auto;
+    animation: fadeIn 0.3s ease-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 #settings-panel {
     animation: modalSlideIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
@@ -448,4 +624,86 @@ body {
     border-radius: 50%;
     box-shadow: 0 0 10px var(--color-cp-yellow);
     border: none;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+
+    /* General Adjustments */
+    html,
+    body {
+        font-size: 14px;
+        /* Slightly smaller base font */
+    }
+
+    /* Tutorial Panel */
+    #tutorial-panel {
+        width: 95%;
+        max-height: 90vh;
+        border-width: 2px;
+    }
+
+    .tutorial-header {
+        padding: 15px;
+    }
+
+    .tutorial-header h2 {
+        font-size: 1.4rem;
+    }
+
+    .tutorial-body {
+        padding: 15px;
+    }
+
+    .tutorial-body h3 {
+        font-size: 1.2rem;
+    }
+
+    .tutorial-body .grid {
+        grid-template-columns: 1fr;
+        /* Stack grid items */
+    }
+
+    /* Settings Panel */
+    #settings-panel {
+        width: 95%;
+        padding: 1rem;
+    }
+
+    .tutorial-header h2 {
+        font-size: 1.5rem;
+    }
+
+    /* Buttons */
+    .cyber-btn {
+        padding: 0.75rem 1rem;
+        /* Larger touch target */
+        font-size: 1rem;
+    }
+
+    /* Disable hover effects that might stick on touch */
+    .cyber-btn:hover::before {
+        width: 0;
+        height: 0;
+    }
+
+    .cyber-btn:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    .cyber-btn:active {
+        transform: scale(0.95);
+        background-color: var(--color-cp-yellow);
+        color: var(--color-cp-black);
+    }
+
+    /* Footer adjustments */
+    #footer-log .text-sm {
+        font-size: 0.75rem;
+    }
+
+    #footer-log .text-xs {
+        font-size: 0.65rem;
+    }
 }

@@ -50,6 +50,17 @@ export class AudioManager {
         const buffer = await this.loadMusicTrack(trackUrl);
         if (!buffer) return;
 
+        // Stop currently playing track if any
+        if (this.currentSource) {
+            this.currentSource.onended = null; // Prevent recursion
+            try {
+                this.currentSource.stop();
+            } catch (e) {
+                // Ignore errors if already stopped
+            }
+            this.currentSource = null;
+        }
+
         // Create source and gain
         const source = this.audioContext.createBufferSource();
         const gainNode = this.audioContext.createGain();
