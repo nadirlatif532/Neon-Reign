@@ -407,67 +407,68 @@ export class Interface {
       
       <div class="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 overflow-y-auto flex-1">
         <!-- Left Column: Details & Stats -->
-        <div class="border-r border-cp-cyan pr-5 flex flex-col gap-4">
-          <div>
-            <span class="inline-block px-4 py-2 text-xl font-bold rounded mb-3 bg-cp-black border border-cp-yellow text-cp-yellow">
-              ${mission.difficulty}
-            </span>
-            <div class="text-cp-yellow text-lg mb-2 font-cyber">${mission.type}</div>
+        <!-- Left Column: Details & Stats -->
+        <div class="border-r border-cp-cyan pr-5 flex flex-col gap-2 overflow-hidden">
+          <div class="shrink-0">
+            <div class="flex justify-between items-center mb-1">
+              <span class="inline-block px-3 py-1 text-lg font-bold rounded bg-cp-black border border-cp-yellow text-cp-yellow">
+                ${mission.difficulty}
+              </span>
+              <div class="text-cp-yellow text-base font-cyber">${mission.type}</div>
+            </div>
             
-            <div class="text-white text-base leading-relaxed mb-4 p-4 bg-black/30 border-l-[3px] border-cp-yellow italic font-cyber">
+            <div class="text-white text-sm leading-snug mb-2 p-2 bg-black/30 border-l-[3px] border-cp-yellow italic font-cyber">
               "${mission.description}"
             </div>
           </div>
 
           <!-- Mission Stats Grid -->
-          <div class="grid grid-cols-2 gap-4">
-            <div class="bg-cp-cyan/5 border border-cp-cyan/30 p-3">
-              <div class="text-cp-cyan text-xs font-bold mb-1">REWARD</div>
-              <div class="text-white text-lg font-cyber">${mission.eddiesMin}-${mission.eddiesMax}€</div>
+          <div class="grid grid-cols-2 gap-2 shrink-0">
+            <div class="bg-cp-cyan/5 border border-cp-cyan/30 p-2 flex justify-between items-center">
+              <div class="text-cp-cyan text-xs font-bold">REWARD</div>
+              <div class="text-white text-base font-cyber">${mission.eddiesMin}-${mission.eddiesMax}€</div>
             </div>
-            <div class="bg-cp-cyan/5 border border-cp-cyan/30 p-3">
-              <div class="text-cp-cyan text-xs font-bold mb-1">XP</div>
-              <div class="text-white text-lg font-cyber">${mission.xpMin}-${mission.xpMax}</div>
+            <div class="bg-cp-cyan/5 border border-cp-cyan/30 p-2 flex justify-between items-center">
+              <div class="text-cp-cyan text-xs font-bold">XP</div>
+              <div class="text-white text-base font-cyber">${mission.xpMin}-${mission.xpMax}</div>
             </div>
-            <div class="bg-cp-cyan/5 border border-cp-cyan/30 p-3">
-              <div class="text-cp-cyan text-xs font-bold mb-1">DURATION</div>
-              <div class="text-white text-lg font-cyber">${mission.duration / 1000}s</div>
+            <div class="bg-cp-cyan/5 border border-cp-cyan/30 p-2 flex justify-between items-center">
+              <div class="text-cp-cyan text-xs font-bold">TIME</div>
+              <div class="text-white text-base font-cyber">${mission.duration / 1000}s</div>
             </div>
-            <div class="bg-cp-cyan/5 border border-cp-cyan/30 p-3">
-              <div class="text-cp-cyan text-xs font-bold mb-1">BASE RISK</div>
-              <div class="text-white text-lg font-cyber">${Math.round(mission.injuryChance * 100)}%</div>
+            <div class="bg-cp-cyan/5 border border-cp-cyan/30 p-2 flex justify-between items-center">
+              <div class="text-cp-cyan text-xs font-bold">RISK</div>
+              <div class="text-white text-base font-cyber">${Math.round(mission.injuryChance * 100)}%</div>
             </div>
           </div>
 
           <!-- Team Stats & Probability -->
-          <div class="bg-black/40 border border-cp-yellow p-4 mt-2">
-            <h4 class="text-cp-yellow font-bold font-cyber mb-3 border-b border-cp-yellow/30 pb-1">TEAM PROJECTIONS</h4>
+          <div class="bg-black/40 border border-cp-yellow p-3 mt-1 shrink-0">
+            <div class="flex justify-between items-center border-b border-cp-yellow/30 pb-1 mb-2">
+              <h4 class="text-cp-yellow font-bold font-cyber text-sm">PROJECTIONS</h4>
+              <div class="text-xs text-gray-400 font-cyber">
+                LVL ${mission.minLevel}+ 
+                ${mission.minCool ? `• COOL ${mission.minCool}+` : ''}
+                ${mission.minReflex ? `• REF ${mission.minReflex}+` : ''}
+              </div>
+            </div>
             
-            <div class="flex justify-between mb-2 text-sm">
+            <div class="flex justify-between mb-1 text-xs">
               <span class="text-gray-400">TEAM POWER:</span>
               <span class="text-white font-bold" id="team-power">0</span>
             </div>
-            <div class="flex justify-between mb-2 text-sm">
+            <div class="flex justify-between mb-1 text-xs">
               <span class="text-gray-400">WIN CHANCE:</span>
               <span class="text-cp-cyan font-bold" id="win-chance">0%</span>
             </div>
-            <div class="w-full h-2 bg-gray-800 mb-4">
+            <div class="w-full h-1.5 bg-gray-800 mb-2">
               <div id="win-bar" class="h-full bg-cp-cyan transition-all duration-300" style="width: 0%"></div>
             </div>
 
-            <div class="flex justify-between text-sm">
+            <div class="flex justify-between text-xs">
               <span class="text-gray-400">INJURY RISK:</span>
               <span class="text-cp-red font-bold" id="injury-risk">--</span>
             </div>
-          </div>
-
-          <div class="mt-2">
-             <div class="text-cp-red text-xs font-bold mb-2">REQUIREMENTS</div>
-             <div class="text-gray-400 font-cyber text-sm">
-               LEVEL ${mission.minLevel}+ 
-               ${mission.minCool ? `• COOL ${mission.minCool}+` : ''}
-               ${mission.minReflex ? `• REFLEX ${mission.minReflex}+` : ''}
-             </div>
           </div>
         </div>
 
@@ -531,13 +532,19 @@ export class Interface {
       }
 
       // Calculate Power
-      const teamPower = selectedMembers.reduce((sum, m) => sum + m.stats.cool + m.stats.reflex + (m.level * 2), 0);
+      // New Formula: (Sum of Stats * 2) + (Sum of Levels * 5)
+      const teamPower = selectedMembers.reduce((sum, m) => sum + ((m.stats.cool + m.stats.reflex) * 2) + (m.level * 5), 0);
       const difficulty = mission.difficultyRating || 50;
-      const chance = Math.min(0.95, Math.max(0.10, teamPower / difficulty));
+      const chance = Math.min(0.95, Math.max(0.05, teamPower / difficulty));
 
       // Calculate Risk
       const riskReduction = (selectedMembers.length - 1) * 0.05;
-      const baseRisk = Math.max(0.05, mission.injuryChance - riskReduction);
+      let baseRisk = Math.max(0.05, mission.injuryChance - riskReduction);
+
+      // UI Prediction: If chance is high (>50%), assume success for risk display
+      if (chance > 0.5) {
+        baseRisk *= 0.5;
+      }
 
       // Update UI
       teamPowerEl.textContent = teamPower.toString();
