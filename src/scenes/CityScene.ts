@@ -1,7 +1,10 @@
 import Phaser from 'phaser';
+import { LazyAssets } from '@/loaders/AssetManifest';
 
 export class CityScene extends Phaser.Scene {
     private isMobile: boolean = false;
+    private bgImage!: Phaser.GameObjects.Image;
+    private bgVideo?: Phaser.GameObjects.Video;
 
     constructor() {
         super('CityScene');
@@ -10,18 +13,18 @@ export class CityScene extends Phaser.Scene {
     create() {
         this.isMobile = this.scale.width <= 768;
 
-        // Background Video
-        const bgVideo = this.add.video(this.scale.width / 2, this.scale.height / 2, 'city_bg_video');
+        // Start with static background image for instant load
+        const bgKey = this.isMobile ? 'city_bg_mobile' : 'city_bg_user';
+        this.bgImage = this.add.image(this.scale.width / 2, this.scale.height / 2, bgKey);
 
-        // Play the video on loop with 15% volume
-        bgVideo.play(true); // true = loop
-        bgVideo.setVolume(0.15);
+        // Scale to cover screen
+        const scaleX = this.scale.width / this.bgImage.width;
+        const scaleY = this.scale.height / this.bgImage.height;
+        const scale = Math.max(scaleX, scaleY);
+        this.bgImage.setScale(scale);
 
-        // Scale to fit entire video on screen with zoom out
-        const scaleX = this.scale.width / bgVideo.width;
-        const scaleY = this.scale.height / bgVideo.height;
-        const scale = Math.min(scaleX, scaleY) * 0.4; // 70% scale to zoom out
-        bgVideo.setScale(scale);
+        // Lazy load the video in the background
+        this.loadBackgroundVideo();
 
         // Hit Zones
         this.createHitZones();
@@ -107,6 +110,63 @@ export class CityScene extends Phaser.Scene {
             console.log(`Clicked ${type}`);
             window.dispatchEvent(new CustomEvent('building-click', { detail: { type } }));
         });
+    }
+
+    private loadBackgroundVideo() {
+        console.log('[CityScene] Lazy loading background video...');
+
+        // Load video asynchronously
+        LazyAssets.videos.forEach(asset => {
+            this.load.video(asset.key, asset.path);
+        });
+
+        this.load.once('complete', () => {
+            console.log('[CityScene] Video loaded, transitioning from static to video');
+
+            // Create video object
+            this.bgVideo = this.add.video(this.scale.width / 2, this.scale.height / 2, 'city_bg_video');
+
+            // Position video behind the static image
+            this.bgVideo.setDepth(-1);
+            this.bgImage.setDepth(0);
+
+            // Scale video
+            const scaleX = this.scale.width / this.bgVideo.width;
+            const scaleY = this.scale.height / this.bgVideo.height;
+            const videoScale = Math.min(scaleX, scaleY) * 0.4;
+            this.bgVideo.setScale(videoScale);
+
+            // Start the video with 0 alpha
+            this.bgVideo.setAlpha(0);
+            this.bgVideo.play(true);
+            this.bgVideo.setVolume(0.15);
+
+            // Fade in video while fading out static image
+            this.tweens.add({
+                targets: this.bgVideo,
+                alpha: 1,
+                duration: 1500,
+                ease: 'Sine.easeInOut'
+            });
+
+            this.tweens.add({
+                targets: this.bgImage,
+                alpha: 0,
+                duration: 1500,
+                ease: 'Sine.easeInOut',
+                onComplete: () => {
+                    // Destroy static image to save memory
+                    this.bgImage.destroy();
+                }
+            });
+        });
+
+        this.load.on('loaderror', (file: { key: string }) => {
+            console.warn('[CityScene] Failed to load video:', file.key, '- continuing with static background');
+        });
+
+        // Start loading
+        this.load.start();
     }
 
     private showMissionReward(detail: any) {

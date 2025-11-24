@@ -34,6 +34,11 @@ export const AssetManifest = {
         { key: 'casualty_loop_2', path: 'assets/casualty-loop-2.ogg' },
         { key: 'casualty_loop_3', path: 'assets/casualty-loop-3.ogg' }
     ] as AudioAsset[],
+    videos: [] as VideoAsset[]
+};
+
+// Lazy-loaded assets (loaded after game starts)
+export const LazyAssets = {
     videos: [
         { key: 'city_bg_video', path: 'assets/animated-city.mp4' }
     ] as VideoAsset[]

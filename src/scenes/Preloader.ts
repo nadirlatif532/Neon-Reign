@@ -23,10 +23,8 @@ export class Preloader extends Phaser.Scene {
             this.load.audio(asset.key, asset.path);
         });
 
-        // Load videos
-        AssetManifest.videos.forEach(asset => {
-            this.load.video(asset.key, asset.path);
-        });
+        // NOTE: Videos are lazy-loaded in CityScene to prevent blocking game start
+        // Large video files (4+ MB) would otherwise cause very long initial load times
 
         this.load.on('progress', (value: number) => {
             updateLoadingProgress(value);
