@@ -178,7 +178,7 @@ export class RivalGangManager {
                 this.eliminateGang(gang.id);
                 return {
                     success: true,
-                    message: `${territory.name} CAPTURED! INCOME INCREASED (${oldIncome} -> ${territory.income})! ${gang.name} ELIMINATED!`,
+                    message: `${territory.name} CAPTURED BY ${state.gangName.toUpperCase()}! ${gang.name} ELIMINATED!`,
                     eliminated: true,
                     loot: Math.floor(gangPower * 3)
                 };
@@ -186,7 +186,7 @@ export class RivalGangManager {
 
             return {
                 success: true,
-                message: `${territory.name} CAPTURED! INCOME INCREASED (${oldIncome} -> ${territory.income})!`,
+                message: `${territory.name} CAPTURED BY ${state.gangName.toUpperCase()}! INCOME INCREASED!`,
                 loot: Math.floor(gangPower * 2)
             };
         } else {

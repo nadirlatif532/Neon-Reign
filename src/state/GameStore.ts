@@ -69,6 +69,7 @@ export interface Territory {
 export interface GameState {
     eddies: number;
     rep: number;
+    gangName: string;
     members: Member[];
     territories: Territory[];
     availableMissions: Mission[];
@@ -80,6 +81,7 @@ export interface GameState {
 export const gameStore = map<GameState>({
     eddies: 1000,
     rep: 10,
+    gangName: "V's Gang",
     members: [
         {
             id: 1,
@@ -129,6 +131,10 @@ export const addEddies = (amount: number) => {
 export const addRep = (amount: number) => {
     const current = gameStore.get().rep;
     gameStore.setKey('rep', current + amount);
+};
+
+export const setGangName = (name: string) => {
+    gameStore.setKey('gangName', name || "V's Gang");
 };
 
 export const recruitMember = (name: string, description: string, art: string = '', riderClass?: RiderClass) => {
@@ -649,6 +655,7 @@ export const loadGameState = (savedState: GameState) => {
 export const resetGameState = () => {
     gameStore.setKey('eddies', 1000);
     gameStore.setKey('rep', 10);
+    gameStore.setKey('gangName', "V's Gang");
     gameStore.setKey('members', [
         {
             id: 1,

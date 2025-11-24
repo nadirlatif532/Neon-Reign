@@ -1,4 +1,4 @@
-import { gameStore, startMission, refreshMissions, Mission, addEddies, recruitMember, healMember, upgradeMember, rivalGangManager, attackTerritory, RIDER_CLASSES, removeEncounter } from '@/state/GameStore';
+import { gameStore, startMission, refreshMissions, Mission, addEddies, recruitMember, healMember, upgradeMember, rivalGangManager, attackTerritory, RIDER_CLASSES, removeEncounter, setGangName } from '@/state/GameStore';
 import { AsciiGenerator } from '@/utils/AsciiGenerator';
 import { audioManager } from '../managers/AudioManager';
 import { saveManager } from '@/managers/SaveManager';
@@ -13,20 +13,6 @@ export class Interface {
   private lastActiveMissions: any[] = [];
   private lastAvailableMissions: any[] = [];
   private lastTerritories: any[] = [];
-  private flavorTexts: string[] = [
-    "WARNING: RELIC MALFUNCTION DETECTED",
-    "DON'T FORGET TO FEED YOUR CAT",
-    "HANAKO IS STILL WAITING AT EMBERS",
-    "NCPD WARRANT ISSUED: JAYWALKING",
-    "TRAUMA TEAM MEMBERSHIP EXPIRED",
-    "WAKE THE F*** UP, SAMURAI",
-    "KIROSHI OPTICS FIRMWARE UPDATE AVAILABLE",
-    "WEATHER UPDATE: ACID RAIN EXPECTED IN PACIFICA",
-    "MAXTAC DEPLOYED TO CITY CENTER",
-    "REMEMBER: STYLE OVER SUBSTANCE",
-    "NETWATCH IS WATCHING YOU",
-    "DELAMAIN: EXCUSE ME, BEEP BEEP"
-  ];
 
 
   constructor() {
@@ -49,8 +35,8 @@ export class Interface {
     this.hudContainer.className = 'absolute top-0 left-0 w-full pointer-events-none flex flex-col z-50';
     this.hudContainer.innerHTML = `
       <header class="flex justify-between items-center border-b-2 border-cp-yellow pb-2 mb-0 bg-cp-black/70 -skew-x-[10deg] border-l-[10px] border-l-cp-cyan pointer-events-auto px-4 py-2">
-        <div class="text-2xl font-black text-cp-cyan ml-5 skew-x-[10deg] drop-shadow-[2px_2px_var(--cp-red)] font-cyber">
-          NEON REIGN
+        <div id="gang-name-header" class="text-2xl font-black text-cp-cyan ml-5 skew-x-[10deg] drop-shadow-[2px_2px_var(--cp-red)] font-cyber">
+          ${gameStore.get().gangName.toUpperCase()}
         </div>
         <div id="resources" class="flex gap-10 mr-5 skew-x-[10deg]">
           <div class="text-xl font-bold text-cp-yellow uppercase flex items-center font-cyber">
@@ -189,6 +175,69 @@ export class Interface {
     window.location.reload();
   }
 
+  public showGangNameModal() {
+    const overlay = this.createOverlay();
+    overlay.style.zIndex = '100000';
+    const modal = document.createElement('div');
+    modal.className = 'bg-cp-bg border-[3px] border-cp-cyan shadow-[0_0_60px_rgba(0,240,255,0.8)] w-[90%] max-w-[500px] flex flex-col animate-modalSlideIn pointer-events-auto';
+
+    const currentName = gameStore.get().gangName;
+
+    modal.innerHTML = `
+      <div class="bg-cp-cyan/20 border-b-2 border-cp-cyan p-5">
+        <h2 class="text-cp-cyan m-0 text-3xl drop-shadow-[0_0_10px_var(--cp-cyan)] font-cyber font-bold uppercase text-center">NAME YOUR GANG</h2>
+      </div>
+      
+      <div class="p-6">
+        <p class="text-white text-lg mb-6 font-cyber leading-relaxed border-l-4 border-cp-cyan pl-4 bg-black/30 p-4">
+          Every legend needs a name. What will the streets call your crew?
+        </p>
+        
+        <div class="mb-6">
+          <label class="text-cp-yellow font-cyber text-sm mb-2 block uppercase tracking-wider">Gang Name</label>
+          <input 
+            type="text" 
+            id="gang-name-input" 
+            class="w-full bg-black/60 border-2 border-cp-cyan text-white font-cyber text-lg p-3 focus:outline-none focus:border-cp-yellow transition-colors"
+            placeholder="V's Gang"
+            value="${currentName}"
+            maxlength="30"
+          />
+          <p class="text-gray-500 text-xs mt-2 font-cyber">Max 30 characters</p>
+        </div>
+      </div>
+
+      <div class="border-t-2 border-cp-cyan p-5">
+        <button id="confirm-gang-name" class="cyber-btn w-full py-3 text-xl">CONFIRM</button>
+      </div>
+    `;
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    const input = modal.querySelector('#gang-name-input') as HTMLInputElement;
+    const confirmBtn = modal.querySelector('#confirm-gang-name');
+
+    // Focus input
+    setTimeout(() => input?.focus(), 100);
+
+    // Submit on Enter key
+    input?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        confirmBtn?.dispatchEvent(new Event('click'));
+      }
+    });
+
+    confirmBtn?.addEventListener('click', () => {
+      audioManager.playClick();
+      const gangName = input?.value.trim() || "V's Gang";
+      setGangName(gangName);
+      saveManager.saveGame(); // Save the new gang name
+      overlay.remove();
+      this.showToast(`GANG RENAMED: ${gangName}`, 'success');
+    });
+  }
+
   private showResetConfirmationModal(onConfirm: () => void) {
     const overlay = this.createOverlay();
     // Increase z-index to appear above settings panel
@@ -203,7 +252,7 @@ export class Interface {
       
       <div class="p-6">
         <p class="text-white text-lg mb-6 font-cyber leading-relaxed border-l-4 border-cp-red pl-4 bg-black/30 p-4">
-          This will <span class="text-cp-red font-bold">PERMANENTLY DELETE</span> all your progress, including:
+          This will <span class="text-cp-red font-bold">PERMANENTLY DELETE</span> <span class="text-cp-cyan font-bold">${gameStore.get().gangName}</span> and all your progress, including:
         </p>
         
         <ul class="text-gray-300 mb-6 space-y-2 font-cyber ml-4">
@@ -214,7 +263,7 @@ export class Interface {
         </ul>
 
         <p class="text-cp-yellow text-base font-cyber text-center font-bold mb-4 animate-pulse">
-          ARE YOU ABSOLUTELY SURE?
+          DELETE ${gameStore.get().gangName.toUpperCase()} FOREVER?
         </p>
       </div>
 
@@ -251,8 +300,37 @@ export class Interface {
       textEl.style.opacity = '0';
 
       setTimeout(() => {
-        // Change text
-        const randomText = this.flavorTexts[Math.floor(Math.random() * this.flavorTexts.length)];
+        // Get current gang name for dynamic messages
+        const gangName = gameStore.get().gangName.toUpperCase();
+
+        // Mix static and dynamic flavor texts
+        const staticTexts = [
+          "WARNING: RELIC MALFUNCTION DETECTED",
+          "DON'T FORGET TO FEED YOUR CAT",
+          "HANAKO IS STILL WAITING AT EMBERS",
+          "NCPD WARRANT ISSUED: JAYWALKING",
+          "TRAUMA TEAM MEMBERSHIP EXPIRED",
+          "WAKE THE F*** UP, SAMURAI",
+          "KIROSHI OPTICS FIRMWARE UPDATE AVAILABLE",
+          "WEATHER UPDATE: ACID RAIN EXPECTED IN PACIFICA",
+          "MAXTAC DEPLOYED TO CITY CENTER",
+          "REMEMBER: STYLE OVER SUBSTANCE",
+          "NETWATCH IS WATCHING YOU",
+          "DELAMAIN: EXCUSE ME, BEEP BEEP"
+        ];
+
+        const dynamicTexts = [
+          `${gangName} REPUTATION SPREADING`,
+          `${gangName} TURF SECURE`,
+          `${gangName} ON THE RISE`,
+          `STREET CRED: ${gangName} RESPECTED`,
+          `${gangName} MAKING MOVES`,
+          `RIVALS FEAR ${gangName}`,
+          `${gangName} OWNS THE NIGHT`
+        ];
+
+        const allTexts = [...staticTexts, ...dynamicTexts];
+        const randomText = allTexts[Math.floor(Math.random() * allTexts.length)];
         textEl.textContent = randomText;
 
         // Glitch effect classes
@@ -300,6 +378,10 @@ export class Interface {
     };
     document.addEventListener('click', startAudio);
 
+    // Listen for gang name modal trigger from tutorial
+    window.addEventListener('show-gang-name-modal', () => {
+      this.showGangNameModal();
+    });
 
   }
 
@@ -317,6 +399,10 @@ export class Interface {
       }
       if (repEl) repEl.textContent = state.rep.toLocaleString();
       if (membersEl) membersEl.textContent = state.members.length.toString();
+
+      // Update gang name header
+      const gangNameHeader = document.getElementById('gang-name-header');
+      if (gangNameHeader) gangNameHeader.textContent = state.gangName.toUpperCase();
 
       // Update Mission Board if open and on missions tab
       const tabContent = document.getElementById('tab-content');
@@ -556,7 +642,7 @@ export class Interface {
 
     modal.innerHTML = `
       <div class="bg-cp-cyan/10 border-b-2 border-cp-cyan p-5 flex justify-between items-center shrink-0">
-        <h2 class="text-cp-cyan m-0 text-3xl drop-shadow-[0_0_10px_var(--cp-cyan)] font-cyber font-bold">HIDEOUT</h2>
+        <h2 id="hideout-title" class="text-cp-cyan m-0 text-3xl drop-shadow-[0_0_10px_var(--cp-cyan)] font-cyber font-bold">${gameStore.get().gangName}'s HIDEOUT</h2>
         <button id="close-modal" class="bg-transparent border-2 border-cp-red text-cp-red text-3xl w-10 h-10 cursor-pointer transition-all duration-300 hover:bg-cp-red hover:text-white hover:rotate-90 flex items-center justify-center font-bold">&times;</button>
       </div>
       
@@ -1039,15 +1125,17 @@ export class Interface {
 
   private showMissionReward(detail: any) {
     const { rewards, leveledUp, injured } = detail;
+    const gangName = gameStore.get().gangName.toUpperCase();
+
     if (injured) {
       audioManager.playInjury();
-      this.showToast(`MISSION FAILED - AGENT INJURED`, 'error');
+      this.showToast(`${gangName} MISSION FAILED - AGENT INJURED`, 'error');
     } else {
       audioManager.playMissionComplete();
-      this.showToast(`MISSION COMPLETE(+${rewards.eddies}€)`, 'success');
+      this.showToast(`${gangName} MISSION COMPLETE (+${rewards.eddies}€)`, 'success');
       if (leveledUp) {
         audioManager.playLevelUp();
-        setTimeout(() => this.showToast(`LEVEL UP!`, 'success'), 500);
+        setTimeout(() => this.showToast(`${gangName} MEMBER LEVELED UP!`, 'success'), 500);
       }
     }
   }
@@ -1114,7 +1202,7 @@ export class Interface {
         </div>
 
         <button id="recruit-btn" class="cyber-btn w-full py-4 text-xl mt-2 group relative overflow-hidden">
-          <span class="relative z-10">RECRUIT (${recruit.cost}€)</span>
+          <span class="relative z-10">JOIN ${gameStore.get().gangName.toUpperCase()} (${recruit.cost}€)</span>
           <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
         </button>
       </div>
@@ -1253,6 +1341,12 @@ export class Interface {
     container.innerHTML = '';
     const state = gameStore.get();
 
+    // Gang name header
+    const gangHeader = document.createElement('h3');
+    gangHeader.className = 'text-cp-yellow font-cyber text-2xl mb-4 text-center uppercase tracking-wider';
+    gangHeader.textContent = `${state.gangName}'S CREW`;
+    container.appendChild(gangHeader);
+
     // Bike animation section
     const bikeSection = document.createElement('div');
     bikeSection.className = 'w-full h-[120px] bg-black/30 border-2 border-cp-yellow relative overflow-hidden mb-4';
@@ -1354,12 +1448,14 @@ export class Interface {
 
   private renderGangsTab(container: Element) {
     container.innerHTML = '';
+    const state = gameStore.get();
+
     const header = document.createElement('div');
     header.className = 'mb-4';
-    header.innerHTML = '<h3 class="text-cp-yellow font-cyber text-xl mb-2">WARFARE</h3><p class="text-gray-400">Expand your territory and eliminate rivals</p>';
+    header.innerHTML = `<h3 class="text-cp-yellow font-cyber text-xl mb-2">${state.gangName.toUpperCase()} VS RIVALS</h3><p class="text-gray-400">Expand your territory and eliminate rivals</p>`;
     container.appendChild(header);
 
-    const state = gameStore.get();
+
 
     // --- Unclaimed Territories Section Removed ---
     // All territories are now owned by rival gangs at start

@@ -259,52 +259,60 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Tutorial Control Script -->
-    <script>
-        // Simple tutorial control with localStorage persistence
-        window.showTutorial = function () {
-            const overlay = document.getElementById('tutorial-overlay');
-            if (overlay) {
-                overlay.classList.remove('tutorial-hidden');
-            }
-        };
+        <!-- Tutorial Control Script -->
+        <script>
+            // Simple tutorial control with localStorage persistence
+            window.showTutorial = function () {
+                const overlay = document.getElementById('tutorial-overlay');
+                if (overlay) {
+                    overlay.classList.remove('tutorial-hidden');
+                }
+            };
 
-        window.hideTutorial = function () {
-            const overlay = document.getElementById('tutorial-overlay');
-            if (overlay) {
-                overlay.classList.add('tutorial-hidden');
-                localStorage.setItem('tutorial-seen', 'true');
-            }
-        };
+            window.hideTutorial = function () {
+                const overlay = document.getElementById('tutorial-overlay');
+                if (overlay) {
+                    overlay.classList.add('tutorial-hidden');
+                    localStorage.setItem('tutorial-seen', 'true');
 
-        // Auto-show tutorial on first load
-        window.addEventListener('DOMContentLoaded', function () {
-            const tutorialSeen = localStorage.getItem('tutorial-seen');
-            if (!tutorialSeen) {
-                setTimeout(() => window.showTutorial(), 1000);
-            }
-        });
+                    // Trigger gang name modal after tutorial closes (only on first run)
+                    const gangNameSet = localStorage.getItem('gang-name-set');
+                    if (!gangNameSet) {
+                        setTimeout(() => {
+                            window.dispatchEvent(new CustomEvent('show-gang-name-modal'));
+                            localStorage.setItem('gang-name-set', 'true');
+                        }, 500);
+                    }
+                }
+            };
 
-        // Wire up close buttons
-        document.addEventListener('DOMContentLoaded', function () {
-            document.getElementById('tutorial-close-btn')?.addEventListener('click', window.hideTutorial);
-            document.getElementById('tutorial-ok-btn')?.addEventListener('click', window.hideTutorial);
-        });
-
-        // Show game elements after external CSS is loaded
-        window.addEventListener('load', function () {
-            // Make game elements visible after full load
-            const gameElements = ['app', 'ui-layer', 'footer-log', 'tutorial-overlay', 'settings-overlay'];
-            gameElements.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.style.visibility = 'visible';
+            // Auto-show tutorial on first load
+            window.addEventListener('DOMContentLoaded', function () {
+                const tutorialSeen = localStorage.getItem('tutorial-seen');
+                if (!tutorialSeen) {
+                    setTimeout(() => window.showTutorial(), 1000);
+                }
             });
-        });
-    </script>
 
-    <script type="module" src="/src/main.ts"></script>
+            // Wire up close buttons
+            document.addEventListener('DOMContentLoaded', function () {
+                document.getElementById('tutorial-close-btn')?.addEventListener('click', window.hideTutorial);
+                document.getElementById('tutorial-ok-btn')?.addEventListener('click', window.hideTutorial);
+            });
+
+            // Show game elements after external CSS is loaded
+            window.addEventListener('load', function () {
+                // Make game elements visible after full load
+                const gameElements = ['app', 'ui-layer', 'footer-log', 'tutorial-overlay', 'settings-overlay'];
+                gameElements.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.visibility = 'visible';
+                });
+            });
+        </script>
+
+        <script type="module" src="/src/main.ts"></script>
 </body>
 
 </html>
