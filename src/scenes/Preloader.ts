@@ -30,11 +30,17 @@ export class Preloader extends Phaser.Scene {
 
         this.load.on('progress', (value: number) => {
             updateLoadingProgress(value);
+
+            // Update DOM loading bar
+            const loadingBar = document.getElementById('loading-bar');
+            if (loadingBar) {
+                loadingBar.style.width = `${value * 100}%`;
+            }
         });
 
         this.load.on('complete', () => {
-            this.scene.start('CityScene');
             console.log('Loading complete');
+            this.scene.start('CityScene');
         });
 
         this.load.on('loaderror', (file: { key: string; src: string }) => {

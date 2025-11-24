@@ -1,14 +1,119 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="background-color: #000;">
 
 <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Neon Reign - Biker Management Sim</title>
+    <style>
+        /* Critical CSS for immediate loading screen render */
+        body {
+            background-color: #000;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            z-index: 100000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Courier New', monospace;
+        }
+
+        .loading-text {
+            color: #fcee0a;
+            font-size: 2.25rem;
+            margin-bottom: 2rem;
+            letter-spacing: 0.1em;
+            text-shadow: 0 0 10px #fcee0a;
+            animation: pulse 1.5s infinite;
+        }
+
+        .loading-bar-container {
+            width: 24rem;
+            height: 1rem;
+            border: 2px solid #00f0ff;
+            padding: 0.25rem;
+            position: relative;
+            box-shadow: 0 0 10px #00f0ff;
+        }
+
+        #loading-bar {
+            height: 100%;
+            background-color: #00f0ff;
+            width: 0%;
+            transition: width 0.2s;
+            box-shadow: 0 0 5px #00f0ff;
+        }
+
+        .loading-subtext {
+            margin-top: 1rem;
+            color: #00f0ff;
+            font-size: 0.875rem;
+            text-shadow: 0 0 5px #00f0ff;
+            animation: glitch 0.2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        @keyframes glitch {
+            0% {
+                transform: translate(0);
+            }
+
+            20% {
+                transform: translate(-2px, 2px);
+            }
+
+            40% {
+                transform: translate(-2px, -2px);
+            }
+
+            60% {
+                transform: translate(2px, 2px);
+            }
+
+            80% {
+                transform: translate(2px, -2px);
+            }
+
+            100% {
+                transform: translate(0);
+            }
+        }
+    </style>
 </head>
 
-<body class="overflow-hidden bg-black m-0 p-0">
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loading-text">INITIALIZING...</div>
+        <div class="loading-bar-container">
+            <div id="loading-bar"></div>
+        </div>
+        <div class="loading-subtext">SYSTEM BOOT SEQUENCE</div>
+    </div>
+
     <!-- Phaser Game Container -->
     <div id="app" class="absolute inset-0 z-0"></div>
 

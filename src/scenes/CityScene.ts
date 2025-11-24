@@ -40,6 +40,18 @@ export class CityScene extends Phaser.Scene {
             },
             loop: true
         });
+
+        // Hide Loading Screen when scene is ready
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) {
+            this.time.delayedCall(500, () => {
+                loadingScreen.style.transition = 'opacity 0.5s ease-out';
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loadingScreen.remove();
+                }, 500);
+            });
+        }
     }
 
     private createHitZones() {
