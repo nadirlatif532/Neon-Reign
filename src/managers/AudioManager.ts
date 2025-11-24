@@ -10,9 +10,9 @@ export class AudioManager {
     private loadedBuffers: { [url: string]: AudioBuffer } = {};
 
     private musicTracks: string[] = [
-        'assets/White Bat Audio - Casualty LOOP 1.wav',
-        'assets/White Bat Audio - Casualty LOOP 2.wav',
-        'assets/White Bat Audio - Casualty LOOP 3.wav'
+        'assets/casualty-loop-1.ogg',
+        'assets/casualty-loop-2.ogg',
+        'assets/casualty-loop-3.ogg'
     ];
 
     constructor() {

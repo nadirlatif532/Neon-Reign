@@ -22,5 +22,28 @@ export default defineConfig({
     },
     build: {
         target: 'esnext',
+        // Manual chunk splitting for better caching
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    // Separate Phaser library (large, rarely changes)
+                    'phaser': ['phaser'],
+                    // Separate nanostores (smaller utility)
+                    'vendor': ['nanostores'],
+                },
+            },
+        },
+        // Increase chunk size warning limit (we know Phaser is large)
+        chunkSizeWarningLimit: 1000,
+        // Enable minification with terser for better compression
+        minify: 'terser',
+        terserOptions: {
+            compress: {
+                drop_console: true, // Remove console.logs in production
+                drop_debugger: true,
+            },
+        },
+        // Asset handling
+        assetsInlineLimit: 4096, // Inline assets < 4KB as base64
     }
 });
