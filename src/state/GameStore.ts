@@ -123,7 +123,7 @@ export const updateLoadingProgress = (progress: number) => {
 
 export const addEddies = (amount: number) => {
     const current = gameStore.get().eddies;
-    gameStore.setKey('eddies', current + amount);
+    gameStore.setKey('eddies', Math.max(0, current + amount));
 };
 
 export const addRep = (amount: number) => {

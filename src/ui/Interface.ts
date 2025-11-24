@@ -408,7 +408,6 @@ export class Interface {
                 ${encounter.options.map((opt, idx) => `
                     <button class="encounter-opt-btn w-full text-left p-4 border-2 border-gray-600 hover:border-cp-yellow hover:bg-cp-yellow/10 transition-all group relative overflow-hidden" data-index="${idx}">
                         <div class="font-bold text-cp-yellow text-lg group-hover:translate-x-2 transition-transform">${opt.text}</div>
-                        ${opt.cost ? `<div class="text-xs text-red-400 mt-1">COST: ${opt.cost}€</div>` : ''}
                         ${opt.skillCheck ? `<div class="text-xs text-cp-cyan mt-1">CHECK: ${opt.skillCheck.stat.toUpperCase()} ${opt.skillCheck.difficulty}+</div>` : ''}
                     </button>
                 `).join('')}

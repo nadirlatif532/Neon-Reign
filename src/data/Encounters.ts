@@ -272,7 +272,7 @@ export const ENCOUNTERS: Encounter[] = [
         theme: 'corpo',
         options: [
             { text: 'Reject', outcome: simpleOutcome('You tear up the card. Felt good.', { rep: 1 }) },
-            { text: 'Sign up', outcome: failOutcome('You sell your soul. You get some eddies but feel dirty.', { eddies: 1000, rep: -10 }) }
+            { text: 'Sign up', outcome: successOutcome('You sell your soul. You get some eddies but feel dirty.', { eddies: 1000, rep: -10 }) }
         ]
     },
     {
@@ -282,7 +282,7 @@ export const ENCOUNTERS: Encounter[] = [
         theme: 'cyberpunk',
         options: [
             { text: 'Leave it', outcome: simpleOutcome('Probably malware.') },
-            { text: 'Decrypt (Tech 6+)', skillCheck: { stat: 'tech', difficulty: 6 }, outcome: (s) => s ? { message: 'It contains banking data! Score.', rewards: { eddies: 800, xp: 50 } } : { message: 'Virus! It fries your optics.', penalties: { health: 10, eddies: -50 } } }
+            { text: 'Decrypt (Tech 6+)', skillCheck: { stat: 'tech', difficulty: 6 }, outcome: (s) => s ? { message: 'It contains banking data! Score.', rewards: { eddies: 800, xp: 50 } } : { message: 'Virus! It fries your optics.', penalties: { health: 10, eddies: 50 } } }
         ]
     },
     {
@@ -332,7 +332,7 @@ export const ENCOUNTERS: Encounter[] = [
         theme: 'cyberpunk',
         options: [
             { text: 'Hang up', outcome: simpleOutcome('Scammers.') },
-            { text: 'Send money', outcome: failOutcome('You idiot.', { eddies: 500 }) },
+            { text: 'Send money', cost: 500, outcome: failOutcome('You idiot.') },
             { text: 'Counter-hack (Tech 5+)', skillCheck: { stat: 'tech', difficulty: 5 }, outcome: (s) => s ? { message: 'You fry their modem.', rewards: { xp: 50, rep: 5 } } : { message: 'They hang up.', } }
         ]
     },
@@ -354,7 +354,7 @@ export const ENCOUNTERS: Encounter[] = [
         description: 'A punk with a knife demands your eddies.',
         theme: 'gang',
         options: [
-            { text: 'Give 100€', cost: 100, outcome: failOutcome('You pay the coward\'s tax.', { rep: -5 }) },
+            { text: 'Give 100€', cost: 100, outcome: simpleOutcome('You pay the coward\'s tax.', {}, { rep: -5 }) },
             { text: 'Refuse (Cool 4+)', skillCheck: { stat: 'cool', difficulty: 4 }, outcome: (s) => s ? { message: 'You laugh. He runs.', rewards: { rep: 5 } } : { message: 'He cuts you.', penalties: { health: 20 } } },
             { text: 'Fight (Reflex 4+)', skillCheck: { stat: 'reflex', difficulty: 4 }, outcome: (s) => s ? { message: 'KO.', rewards: { xp: 30 } } : { message: 'Ouch.', penalties: { health: 15 } } }
         ]
