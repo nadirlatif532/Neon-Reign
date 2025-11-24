@@ -1,10 +1,20 @@
 import { map } from 'nanostores';
 import { RivalGangManager } from '@/managers/RivalGangManager';
 
+export type RiderClass = 'SOLO' | 'NETRUNNER' | 'TECHIE' | 'NOMAD' | 'FIXER';
+
+export const RIDER_CLASSES: Record<RiderClass, { name: string; description: string; passive: string }> = {
+    SOLO: { name: 'Solo', description: 'Combat specialist.', passive: '+10% Success Chance on HEIST/BOUNTY missions.' },
+    NETRUNNER: { name: 'Netrunner', description: 'Hacking expert.', passive: '+15% XP gain on all missions.' },
+    TECHIE: { name: 'Techie', description: 'Engineering wizard.', passive: '-20% Injury Chance for team.' },
+    NOMAD: { name: 'Nomad', description: 'Transport expert.', passive: '-15% Mission Duration.' },
+    FIXER: { name: 'Fixer', description: 'Business savvy.', passive: '+15% Eddies reward.' }
+};
+
 export interface Member {
     id: number;
     name: string;
-    role: string;
+    class: RiderClass;
     description: string;
     art: string;
     status: 'IDLE' | 'ON MISSION' | 'INJURED';
@@ -63,6 +73,7 @@ export interface GameState {
     territories: Territory[];
     availableMissions: Mission[];
     activeMissions: ActiveMission[];
+    activeEncounters: { id: string; encounterId: string; x: number; y: number; expiresAt: number }[];
     loadingProgress: number;
 }
 
@@ -73,7 +84,7 @@ export const gameStore = map<GameState>({
         {
             id: 1,
             name: 'V',
-            role: 'Street Kid',
+            class: 'SOLO',
             description: 'Your first crew member and right-hand.',
             art: 'biker',
             status: 'IDLE',
@@ -99,6 +110,7 @@ export const gameStore = map<GameState>({
     ],
     availableMissions: [],
     activeMissions: [],
+    activeEncounters: [],
     loadingProgress: 0
 });
 
@@ -118,11 +130,14 @@ export const addRep = (amount: number) => {
     gameStore.setKey('rep', current + amount);
 };
 
-export const recruitMember = (name: string, role: string, description: string, art: string = '') => {
+export const recruitMember = (name: string, description: string, art: string = '', riderClass?: RiderClass) => {
+    const classes = Object.keys(RIDER_CLASSES) as RiderClass[];
+    const randomClass = classes[Math.floor(Math.random() * classes.length)];
+
     const member: Member = {
         id: Date.now(),
         name,
-        role,
+        class: riderClass || randomClass,
         description: description || 'A fresh recruit ready for action.',
         art,
         status: 'IDLE',
@@ -229,13 +244,19 @@ export const startMission = (memberIds: number[], missionId: number, durationOve
     gameStore.setKey('members', updatedMembers);
 
     // Add active mission
-    const finalDuration = durationOverride !== null ? durationOverride : mission.duration;
+    // Calculate Duration with Nomad Passive
+    let duration = durationOverride !== null ? durationOverride : mission.duration;
+    const hasNomad = members.some(m => m.class === 'NOMAD');
+    if (hasNomad) {
+        duration = Math.floor(duration * 0.85); // 15% reduction
+    }
+
     const activeMission: ActiveMission = {
         id: Date.now() + Math.floor(Math.random() * 1000),
         memberIds,
         mission,
         startTime: Date.now(),
-        endTime: Date.now() + finalDuration
+        endTime: Date.now() + duration
     };
 
     const updatedActiveMissions = [...state.activeMissions, activeMission];
@@ -244,7 +265,7 @@ export const startMission = (memberIds: number[], missionId: number, durationOve
     // Schedule completion
     setTimeout(() => {
         completeMission(activeMission.id);
-    }, finalDuration);
+    }, duration);
 
     return { success: true };
 };
@@ -264,9 +285,17 @@ export const completeMission = (activeMissionId: number) => {
 
     // Calculate Team Power
     // New Formula: (Sum of Stats * 2) + (Sum of Levels * 5)
-    const teamPower = members.reduce((sum, m) => {
+    // Calculate Team Power
+    // New Formula: (Sum of Stats * 2) + (Sum of Levels * 5)
+    let teamPower = members.reduce((sum, m) => {
         return sum + ((m.stats.cool + m.stats.reflex) * 2) + (m.level * 5);
     }, 0);
+
+    // Solo Passive: +10% Success Chance (effectively +10% power vs difficulty) on HEIST/BOUNTY
+    const hasSolo = members.some(m => m.class === 'SOLO');
+    if (hasSolo && (mission.type === 'HEIST' || mission.type === 'BOUNTY')) {
+        teamPower *= 1.1;
+    }
 
     // Difficulty Rating (Default to 50 if missing)
     const difficulty = mission.difficultyRating || 50;
@@ -292,6 +321,11 @@ export const completeMission = (activeMissionId: number) => {
         xpReward = Math.floor((Math.random() * (mission.xpMax - mission.xpMin) + mission.xpMin)); // Base XP per person
         repReward = mission.rep;
 
+        // Fixer Passive: +15% Eddies
+        if (members.some(m => m.class === 'FIXER')) {
+            eddiesReward = Math.floor(eddiesReward * 1.15);
+        }
+
         addEddies(eddiesReward);
         addRep(repReward);
     } else {
@@ -299,10 +333,20 @@ export const completeMission = (activeMissionId: number) => {
         xpReward = Math.floor(mission.xpMin * 0.2);
     }
 
+    // Netrunner Passive: +15% XP
+    if (members.some(m => m.class === 'NETRUNNER')) {
+        xpReward = Math.floor(xpReward * 1.15);
+    }
+
     // Injury Logic
     // Risk reduced by 5% per extra team member
     const riskReduction = (teamSize - 1) * 0.05;
     let baseInjuryChance = Math.max(0.05, mission.injuryChance - riskReduction);
+
+    // Techie Passive: -20% Injury Chance
+    if (members.some(m => m.class === 'TECHIE')) {
+        baseInjuryChance = Math.max(0, baseInjuryChance - 0.2);
+    }
 
     // If mission was successful, injury chance is HALVED
     if (isSuccess) {
@@ -494,6 +538,38 @@ export const attackTerritory = (territoryId: number, memberIds: number[]) => {
     gameStore.setKey('members', [...state.members]);
 
     return result;
+};
+
+export const addEncounter = (encounterId: string, x: number, y: number, duration: number) => {
+    const state = gameStore.get();
+    const id = Date.now().toString() + Math.random().toString().slice(2, 6);
+    const newEncounter = {
+        id,
+        encounterId,
+        x,
+        y,
+        expiresAt: Date.now() + duration
+    };
+    gameStore.setKey('activeEncounters', [...state.activeEncounters, newEncounter]);
+    return id;
+};
+
+export const removeEncounter = (id: string) => {
+    const state = gameStore.get();
+    gameStore.setKey('activeEncounters', state.activeEncounters.filter(e => e.id !== id));
+};
+
+export const damageMember = (memberId: number, amount: number) => {
+    const state = gameStore.get();
+    const member = state.members.find(m => m.id === memberId);
+    if (member) {
+        member.health = Math.max(0, member.health - amount);
+        if (member.health <= 0) {
+            member.injured = true;
+            member.status = 'INJURED';
+        }
+        gameStore.setKey('members', [...state.members]);
+    }
 };
 
 // Initial Setup

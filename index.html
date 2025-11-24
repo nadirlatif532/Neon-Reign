@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" style="background-color: #000;">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8" />
@@ -105,29 +105,27 @@
 </head>
 
 <body>
+    <!-- Game Containers -->
+    <div id="app"></div>
+    <div id="ui-layer"></div>
+
+    <!-- Footer -->
+    <div id="footer-log" class="fixed bottom-0 left-0 w-full pointer-events-none z-40">
+        <div class="bg-black/80 border-t-2 border-cp-yellow p-2 flex justify-between items-center backdrop-blur-sm">
+            <div class="text-cp-yellow font-cyber text-sm animate-pulse">SYSTEM LOG //</div>
+            <div id="flavor-text" class="text-cp-cyan font-mono text-xs flex-1 text-center uppercase tracking-widest">
+                INITIALIZING...</div>
+            <div class="text-cp-yellow font-cyber text-sm">V.1.0.4</div>
+        </div>
+    </div>
+
     <!-- Loading Screen -->
     <div id="loading-screen">
         <div class="loading-text">INITIALIZING...</div>
         <div class="loading-bar-container">
             <div id="loading-bar"></div>
         </div>
-        <div class="loading-subtext">SYSTEM BOOT SEQUENCE</div>
     </div>
-
-    <!-- Phaser Game Container -->
-    <div id="app" class="absolute inset-0 z-0"></div>
-
-    <!-- UI Overlay Layer -->
-    <div id="ui-layer" class="absolute inset-0 z-10 pointer-events-none"></div>
-
-    <!-- Footer Log -->
-    <div id="footer-log"
-        class="fixed bottom-0 left-0 w-full bg-cp-black/80 border-t-2 border-cp-yellow px-4 py-2 z-50 pointer-events-none">
-        <div id="flavor-text" class="text-cp-yellow font-cyber text-sm">> SYSTEM READY</div>
-    </div>
-
-    <!-- Scanline CRT Effect -->
-    <div class="scanlines"></div>
 
     <!-- Tutorial Overlay -->
     <div id="tutorial-overlay" class="tutorial-hidden">

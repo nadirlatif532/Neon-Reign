@@ -1,6 +1,8 @@
-import { gameStore, startMission, refreshMissions, Mission, addEddies, recruitMember, healMember, upgradeMember, captureTerritory, rivalGangManager, attackTerritory } from '@/state/GameStore';
+import { gameStore, startMission, refreshMissions, Mission, addEddies, recruitMember, healMember, upgradeMember, captureTerritory, rivalGangManager, attackTerritory, RIDER_CLASSES, removeEncounter } from '@/state/GameStore';
 import { AsciiGenerator } from '@/utils/AsciiGenerator';
 import { audioManager } from '../managers/AudioManager';
+import { encounterManager } from '@/managers/EncounterManager';
+import { ENCOUNTERS } from '@/data/Encounters';
 
 export class Interface {
   private container: HTMLElement;
@@ -160,6 +162,190 @@ export class Interface {
           this.renderMissionsTab(tabContent);
         }
       }
+
+      // Render Active Encounters
+      this.renderEncounters(state.activeEncounters);
+    });
+  }
+
+  private renderEncounters(encounters: { id: string; encounterId: string; x: number; y: number }[]) {
+    // Remove old encounters
+    const existing = document.querySelectorAll('.encounter-marker');
+    existing.forEach(el => {
+      if (!encounters.find(e => e.id === (el as HTMLElement).dataset.id)) {
+        el.remove();
+      }
+    });
+
+    // Add new encounters
+    encounters.forEach(encounter => {
+      if (!document.querySelector(`.encounter-marker[data-id="${encounter.id}"]`)) {
+        // Play alert sound
+        audioManager.playAlert();
+
+        const el = document.createElement('div');
+        // Added pointer-events-auto to ensure it catches clicks even if parent is pointer-events-none
+        el.className = 'encounter-marker absolute w-16 h-16 flex items-center justify-center cursor-pointer z-[60] pointer-events-auto group';
+        el.style.left = `${encounter.x}%`;
+        el.style.top = `${encounter.y}%`;
+        el.dataset.id = encounter.id;
+
+        // Improved visuals: Diamond shape, pulsing ring, better colors
+        el.innerHTML = `
+                <div class="absolute inset-0 bg-cp-yellow/30 rounded-full animate-ping"></div>
+                <div class="absolute inset-0 bg-cp-red/20 rotate-45 border-2 border-cp-yellow shadow-[0_0_15px_var(--cp-yellow)] transition-transform group-hover:scale-110 bg-black/80"></div>
+                <div class="relative text-cp-yellow text-4xl font-bold drop-shadow-[0_0_5px_var(--cp-red)] animate-bounce">!</div>
+                <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-black/90 border border-cp-yellow text-cp-yellow text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-cyber tracking-wider">
+                    SIGNAL DETECTED
+                </div>
+            `;
+
+        el.addEventListener('click', (e) => {
+          e.stopPropagation(); // Prevent clicking through
+          audioManager.playClick();
+          this.openEncounterModal(encounter.id, encounter.encounterId);
+        });
+
+        this.container.appendChild(el);
+      }
+    });
+  }
+
+  private openEncounterModal(instanceId: string, encounterId: string) {
+    const encounter = ENCOUNTERS.find(e => e.id === encounterId);
+    if (!encounter) return;
+
+    const overlay = this.createOverlay();
+    const modal = document.createElement('div');
+    modal.className = 'bg-cp-bg border-[3px] border-cp-red shadow-[0_0_40px_rgba(255,0,0,0.5)] w-[90%] max-w-[600px] flex flex-col animate-modalSlideIn pointer-events-auto relative';
+
+    modal.innerHTML = `
+        <div class="bg-cp-red/20 border-b-2 border-cp-red p-5 flex justify-between items-center shrink-0">
+            <h2 class="text-cp-red m-0 text-2xl drop-shadow-[0_0_10px_var(--cp-red)] font-cyber font-bold uppercase">${encounter.title}</h2>
+            <button id="close-encounter" class="bg-transparent border-2 border-cp-red text-cp-red text-2xl w-8 h-8 cursor-pointer transition-all duration-300 hover:bg-cp-red hover:text-white hover:rotate-90 flex items-center justify-center font-bold">&times;</button>
+        </div>
+        
+        <div class="p-6">
+            <p class="text-white text-lg mb-6 font-cyber leading-relaxed border-l-4 border-cp-yellow pl-4 bg-black/30 p-4">
+                "${encounter.description}"
+            </p>
+
+            <div class="space-y-3">
+                ${encounter.options.map((opt, idx) => `
+                    <button class="encounter-opt-btn w-full text-left p-4 border-2 border-gray-600 hover:border-cp-yellow hover:bg-cp-yellow/10 transition-all group relative overflow-hidden" data-index="${idx}">
+                        <div class="font-bold text-cp-yellow text-lg group-hover:translate-x-2 transition-transform">${opt.text}</div>
+                        ${opt.cost ? `<div class="text-xs text-red-400 mt-1">COST: ${opt.cost}€</div>` : ''}
+                        ${opt.skillCheck ? `<div class="text-xs text-cp-cyan mt-1">CHECK: ${opt.skillCheck.stat.toUpperCase()} ${opt.skillCheck.difficulty}+</div>` : ''}
+                    </button>
+                `).join('')}
+            </div>
+        </div>
+      `;
+
+    overlay.appendChild(modal);
+    this.modalContainer.appendChild(overlay);
+
+    modal.querySelector('#close-encounter')?.addEventListener('click', () => overlay.remove());
+
+    modal.querySelectorAll('.encounter-opt-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = parseInt((e.currentTarget as HTMLElement).dataset.index!);
+        const result = encounterManager.resolveEncounter(encounterId, idx);
+
+        // Remove encounter from world
+        removeEncounter(instanceId);
+
+        // Show result with detailed effects
+        overlay.remove();
+        this.showEncounterResult(result.message, result.success, result.effects);
+      });
+    });
+  }
+
+  private showEncounterResult(message: string, success: boolean, effects?: {
+    cost?: number;
+    rewards?: { eddies?: number; xp?: number; rep?: number; health?: number };
+    penalties?: { eddies?: number; health?: number; rep?: number };
+  }) {
+    const overlay = this.createOverlay();
+    const modal = document.createElement('div');
+    const color = success ? 'cp-cyan' : 'cp-red';
+
+    modal.className = `bg-cp-bg border-[3px] border-${color} shadow-[0_0_40px_rgba(${success ? '0,240,255' : '255,0,0'},0.5)] w-[90%] max-w-[600px] flex flex-col animate-modalSlideIn pointer-events-auto`;
+
+    // Build effects display
+    let effectsHtml = '';
+
+    if (effects) {
+      const effectsList: string[] = [];
+
+      // Cost
+      if (effects.cost) {
+        effectsList.push(`<div class="flex items-center gap-2 text-cp-red"><span class="text-2xl">💸</span> <span>-${effects.cost}€ COST</span></div>`);
+      }
+
+      // Rewards
+      if (effects.rewards) {
+        if (effects.rewards.eddies) {
+          effectsList.push(`<div class="flex items-center gap-2 text-cp-yellow"><span class="text-2xl">💰</span> <span>+${effects.rewards.eddies}€ EDDIES</span></div>`);
+        }
+        if (effects.rewards.xp) {
+          effectsList.push(`<div class="flex items-center gap-2 text-cp-cyan"><span class="text-2xl">⭐</span> <span>+${effects.rewards.xp} XP</span></div>`);
+        }
+        if (effects.rewards.rep) {
+          effectsList.push(`<div class="flex items-center gap-2 text-green-400"><span class="text-2xl">🏆</span> <span>+${effects.rewards.rep} REP</span></div>`);
+        }
+        if (effects.rewards.health) {
+          effectsList.push(`<div class="flex items-center gap-2 text-green-500"><span class="text-2xl">❤️</span> <span>+${effects.rewards.health} HP</span></div>`);
+        }
+      }
+
+      // Penalties
+      if (effects.penalties) {
+        if (effects.penalties.eddies) {
+          effectsList.push(`<div class="flex items-center gap-2 text-orange-500"><span class="text-2xl">💸</span> <span>-${effects.penalties.eddies}€ LOST</span></div>`);
+        }
+        if (effects.penalties.rep) {
+          effectsList.push(`<div class="flex items-center gap-2 text-orange-500"><span class="text-2xl">📉</span> <span>${effects.penalties.rep} REP</span></div>`);
+        }
+        if (effects.penalties.health) {
+          effectsList.push(`<div class="flex items-center gap-2 text-cp-red"><span class="text-2xl">💔</span> <span>-${effects.penalties.health} HP DAMAGE</span></div>`);
+        }
+      }
+
+      if (effectsList.length > 0) {
+        effectsHtml = `
+          <div class="bg-black/40 border-t-2 border-${color}/30 p-4 mt-4">
+            <h3 class="text-cp-yellow font-bold font-cyber text-sm mb-3 uppercase tracking-wider">Effects Applied:</h3>
+            <div class="space-y-2 text-base font-cyber">
+              ${effectsList.join('')}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    modal.innerHTML = `
+        <div class="bg-${color}/10 border-b-2 border-${color} p-5">
+          <h2 class="text-${color} text-3xl font-bold font-cyber text-center drop-shadow-[0_0_10px_var(--${color})]">
+            ${success ? '✓ SUCCESS' : '✗ FAILURE'}
+          </h2>
+        </div>
+        <div class="p-6">
+          <p class="text-white text-lg mb-4 font-cyber leading-relaxed border-l-4 border-${color} pl-4 bg-black/30 p-4">"${message}"</p>
+          ${effectsHtml}
+        </div>
+        <div class="border-t-2 border-${color} p-5">
+          <button id="close-result" class="cyber-btn w-full py-3 text-xl">CLOSE</button>
+        </div>
+      `;
+
+    overlay.appendChild(modal);
+    this.modalContainer.appendChild(overlay);
+
+    modal.querySelector('#close-result')?.addEventListener('click', () => {
+      audioManager.playClick();
+      overlay.remove();
     });
   }
 
@@ -271,7 +457,7 @@ export class Interface {
         const card = document.createElement('div');
         card.className = 'bg-black/60 border-2 border-cp-cyan p-4 mb-3 animate-pulse';
 
-        const memberNames = members.map(m => m.name).join(', ');
+
         const teamLabel = members.length > 1 ? `TEAM (${members.length})` : members[0].name;
 
         card.innerHTML = `
@@ -282,7 +468,9 @@ export class Interface {
             </div>
             <div class="text-right">
               <div class="text-cp-yellow font-bold font-cyber">${teamLabel}</div>
-              <div class="text-gray-400 text-xs truncate max-w-[150px]">${memberNames}</div>
+              <div class="text-gray-400 text-xs truncate max-w-[150px]">
+                ${members.map(m => `<span class="text-[10px] bg-cp-cyan/20 px-1 mr-1">${m.class.substring(0, 3)}</span>${m.name}`).join(', ')}
+              </div>
             </div>
           </div>
           
@@ -469,6 +657,8 @@ export class Interface {
               <span class="text-gray-400">INJURY RISK:</span>
               <span class="text-cp-red font-bold" id="injury-risk">--</span>
             </div>
+            
+            <div id="active-passives" class="mt-2 border-t border-gray-700 pt-1"></div>
           </div>
         </div>
 
@@ -557,6 +747,15 @@ export class Interface {
       else winChanceEl.className = 'text-red-500 font-bold';
 
       injuryRiskEl.textContent = `${Math.round(baseRisk * 100)}%`;
+
+      // Show active passives
+      const passivesList = selectedMembers.map(m => {
+        const info = RIDER_CLASSES[m.class];
+        return `<div class="text-[10px] text-cp-cyan">• ${m.name} (${info.name}): ${info.passive}</div>`;
+      }).join('');
+
+      const passiveContainer = modal.querySelector('#active-passives');
+      if (passiveContainer) passiveContainer.innerHTML = passivesList;
     };
 
     // Render Crew
@@ -582,21 +781,18 @@ export class Interface {
         } else {
           el.classList.add('opacity-50', 'cursor-not-allowed', 'border-red-900');
         }
-
         el.innerHTML = `
-          <div class="w-12 h-12 rounded-full bg-cp-cyan text-cp-black flex items-center justify-center font-bold text-2xl shrink-0">
-            ${member.name.charAt(0)}
-          </div>
           <div class="flex-1">
-            <div class="font-bold text-cp-cyan text-lg font-cyber mb-1">${member.name}</div>
-            <div class="flex gap-4 text-sm text-gray-400 font-cyber">
-               <span>LVL ${member.level}</span>
-               <span>COOL ${member.stats.cool}</span>
-               <span>REF ${member.stats.reflex}</span>
+            <div class="flex justify-between items-center mb-1">
+              <div class="font-bold text-white font-cyber">${member.name}</div>
+              <div class="text-xs text-cp-yellow font-cyber">LVL ${member.level}</div>
+            </div>
+            <div class="flex gap-3 text-xs text-gray-400 font-mono">
+              <span>COOL: <span class="${member.stats.cool >= (mission.minCool || 0) ? 'text-cp-cyan' : 'text-red-500'}">${member.stats.cool}</span></span>
+              <span>REF: <span class="${member.stats.reflex >= (mission.minReflex || 0) ? 'text-cp-cyan' : 'text-red-500'}">${member.stats.reflex}</span></span>
             </div>
           </div>
-          <div class="w-6 h-6 border-2 border-cp-cyan flex items-center justify-center text-sm check-box transition-all">
-          </div>
+          <div class="w-6 h-6 border-2 border-cp-cyan flex items-center justify-center text-sm check-box transition-all"></div>
         `;
 
         if (qualified) {
@@ -672,7 +868,7 @@ export class Interface {
       this.showToast(`MISSION FAILED - AGENT INJURED`, 'error');
     } else {
       audioManager.playMissionComplete();
-      this.showToast(`MISSION COMPLETE (+${rewards.eddies}€)`, 'success');
+      this.showToast(`MISSION COMPLETE(+${rewards.eddies}€)`, 'success');
       if (leveledUp) {
         audioManager.playLevelUp();
         setTimeout(() => this.showToast(`LEVEL UP!`, 'success'), 500);
@@ -706,48 +902,62 @@ export class Interface {
     });
 
     const modal = document.createElement('div');
-    modal.className = 'bg-cp-bg border-[3px] border-cp-red shadow-[0_0_40px_rgba(255,0,60,0.5)] w-[90%] max-w-[600px] max-h-[85vh] flex flex-col animate-modalSlideIn pointer-events-auto';
+    modal.className = 'bg-cp-bg border-[3px] border-cp-cyan shadow-[0_0_40px_rgba(0,240,255,0.5)] w-[90%] max-w-[500px] flex flex-col animate-modalSlideIn pointer-events-auto relative';
 
-    // Generate random recruit using AsciiGenerator
-    const recruit = AsciiGenerator.generatePortrait();
+    // Generate a random class for the recruit to display
+    const classes = Object.keys(RIDER_CLASSES) as (keyof typeof RIDER_CLASSES)[];
+    const randomClass = classes[Math.floor(Math.random() * classes.length)];
+
+    // Use AsciiGenerator to get random recruit details
+    const { art, name, description } = AsciiGenerator.generatePortrait();
+
+    const recruit = {
+      name: name,
+      class: randomClass,
+      description: description,
+      cost: 1000,
+      art: art
+    };
 
     modal.innerHTML = `
-      <div class="bg-cp-red/10 border-b-2 border-cp-red p-5 flex justify-between items-center shrink-0">
-        <h2 class="text-cp-red m-0 text-3xl drop-shadow-[0_0_10px_var(--cp-red)] font-cyber font-bold">THE AFTERLIFE</h2>
-        <button id="close-afterlife" class="bg-transparent border-2 border-cp-red text-cp-red text-3xl w-10 h-10 cursor-pointer transition-all duration-300 hover:bg-cp-red hover:text-white hover:rotate-90 flex items-center justify-center font-bold">&times;</button>
+      <div class="bg-cp-cyan/10 border-b-2 border-cp-cyan p-5 flex justify-between items-center">
+        <h2 class="text-cp-cyan m-0 text-3xl drop-shadow-[0_0_10px_var(--cp-cyan)] font-cyber font-bold">AFTERLIFE BAR</h2>
+        <button id="close-modal" class="bg-transparent border-2 border-cp-red text-cp-red text-3xl w-10 h-10 cursor-pointer transition-all duration-300 hover:bg-cp-red hover:text-white hover:rotate-90 flex items-center justify-center font-bold">&times;</button>
       </div>
-      
-      <div class="flex-1 overflow-y-auto p-5 flex flex-col items-center">
-        <p class="text-cp-yellow text-center mb-4 font-cyber">INCOMING TRANSMISSION...</p>
-        <pre style="color: var(--color-cp-cyan); font-family: monospace; font-size: 12px; line-height: 10px; margin: 10px 0; text-shadow: 0 0 5px var(--color-cp-cyan);">${recruit.art}</pre>
-        <h3 style="color: var(--color-cp-yellow); margin: 10px 0; font-size: 1.5rem;">${recruit.name}</h3>
-        <p style="color: #fff; font-style: italic; margin-bottom: 15px; font-size: 0.9rem;">"${recruit.description}"</p>
-        
-        <div style="margin-bottom: 20px; display: flex; flex-direction: row; gap: 15px; justify-content: center; width: 100%; font-family: var(--font-family-cyber);">
-          <div class="text-cp-yellow">💰 Cost: 500 Eddies</div>
-          <div class="text-cp-yellow">📊 Class: Solo</div>
-          <div class="text-cp-yellow">⭐ Level 1</div>
+
+      <div class="p-6 flex flex-col gap-4">
+        <div class="font-mono text-[10px] leading-none whitespace-pre text-cp-cyan bg-black/50 p-4 border border-cp-cyan/30 overflow-hidden select-none flex justify-center items-center min-h-[120px]">${recruit.art}</div>
+
+        <div class="border-l-4 border-cp-yellow pl-4">
+          <h3 class="text-white text-2xl font-cyber font-bold mb-1">${recruit.name}</h3>
+          <div class="text-cp-yellow text-sm font-cyber mb-2">CLASS: ${recruit.class}</div>
+          <p class="text-gray-400 text-sm italic mb-3">"${recruit.description}"</p>
+          <div class="text-cp-cyan text-sm font-bold font-cyber border-t border-gray-700 pt-2">
+            PASSIVE: ${RIDER_CLASSES[recruit.class].passive}
+          </div>
         </div>
-        <button class="cyber-btn" id="hire-btn">HIRE MERC</button>
+
+        <button id="recruit-btn" class="cyber-btn w-full py-4 text-xl mt-2 group relative overflow-hidden">
+          <span class="relative z-10">RECRUIT (${recruit.cost}€)</span>
+          <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+        </button>
       </div>
     `;
 
     overlay.appendChild(modal);
     this.modalContainer.appendChild(overlay);
 
-    modal.querySelector('#close-afterlife')?.addEventListener('click', () => overlay.remove());
+    modal.querySelector('#close-modal')?.addEventListener('click', () => overlay.remove());
 
-    modal.querySelector('#hire-btn')?.addEventListener('click', () => {
+    modal.querySelector('#recruit-btn')?.addEventListener('click', () => {
       audioManager.playClick();
       const state = gameStore.get();
-      if (state.eddies >= 500) {
-        addEddies(-500);
+      if (state.eddies >= recruit.cost) {
+        addEddies(-recruit.cost);
+        recruitMember(recruit.name, recruit.description, recruit.art, recruit.class as any);
         audioManager.playPurchase();
-        recruitMember(recruit.name, 'Solo', recruit.description, recruit.art);
-        this.showToast(`${recruit.name} HIRED!`, 'success');
-        // Close and reopen to show new recruit
+        this.showToast('MEMBER RECRUITED', 'success');
         overlay.remove();
-        this.openAfterlife();
       } else {
         this.showToast('INSUFFICIENT FUNDS', 'error');
       }
@@ -772,7 +982,7 @@ export class Interface {
         <h2 class="text-cp-cyan m-0 text-3xl drop-shadow-[0_0_10px_var(--cp-cyan)] font-cyber font-bold">RIPPERDOC</h2>
         <button id="close-ripperdoc" class="bg-transparent border-2 border-cp-red text-cp-red text-3xl w-10 h-10 cursor-pointer transition-all duration-300 hover:bg-cp-red hover:text-white hover:rotate-90 flex items-center justify-center font-bold">&times;</button>
       </div>
-      
+
       <div class="flex-1 overflow-y-auto p-5">
         <h3 class="text-cp-yellow font-cyber mb-4">MEDICAL & UPGRADES</h3>
         <p class="text-gray-400 mb-4">Heal injured members and install cyberware</p>
@@ -798,14 +1008,13 @@ export class Interface {
         <div class="flex justify-between items-start mb-3">
           <div>
             <div class="text-cp-cyan font-bold text-lg font-cyber">${member.name} <span class="text-sm text-cp-yellow">LVL ${member.level}</span></div>
-            <div class="text-gray-400 text-sm font-cyber">[${member.role}]</div>
           </div>
           <div class="text-sm font-bold ${member.injured ? 'text-cp-red' : 'text-green-500'}">${member.injured ? 'INJURED' : 'HEALTHY'}</div>
         </div>
-        
+
         <div class="relative h-6 bg-gray-800 mb-2">
           <div class="absolute inset-0 bg-green-500" style="width: ${healthPercent}%"></div>
-          <div class="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">${member.health} / ${member.maxHealth} HP</div>
+          <div class="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">${member.health}/${member.maxHealth} HP</div>
         </div>
         
         ${member.injured ? `
@@ -863,7 +1072,6 @@ export class Interface {
 
   // HQ Tab Rendering Methods
 
-
   private renderRosterTab(container: Element) {
     const state = gameStore.get();
 
@@ -903,19 +1111,19 @@ export class Interface {
         <div class="flex justify-between items-start mb-2">
           <div>
             <div class="text-cp-cyan font-bold text-lg font-cyber">${member.name} <span class="text-sm text-cp-yellow">LVL ${member.level}</span></div>
-            <div class="text-gray-400 text-sm font-cyber">[${member.role}]</div>
+            <div class="text-cp-cyan text-xs font-cyber mt-1">CLASS: ${member.class}</div>
           </div>
           <div class="text-sm font-bold ${statusClass}">${statusText}</div>
         </div>
 
         <div class="relative h-6 bg-gray-800 mb-2">
           <div class="absolute inset-0 bg-green-500" style="width: ${healthPercent}%"></div>
-          <div class="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">${member.health} / ${member.maxHealth} HP</div>
+          <div class="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">${member.health}/${member.maxHealth} HP</div>
         </div>
 
         <div class="relative h-4 bg-gray-800 mb-2">
           <div class="absolute inset-0 bg-cp-yellow" style="width: ${xpPercent}%"></div>
-          <div class="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">${member.xp} / ${member.xpToNext} XP</div>
+          <div class="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">${member.xp}/${member.xpToNext} XP</div>
         </div>
 
         <div class="flex gap-4 text-sm text-gray-400 font-cyber">
@@ -1114,7 +1322,7 @@ export class Interface {
         else successChance = Math.round(((ratio - 0.5) / 1.0) * 100);
       }
 
-      chanceEl.textContent = `${successChance}% `;
+      chanceEl.textContent = `${successChance}%`;
       chanceEl.style.color = successChance >= 80 ? 'lime' : successChance >= 50 ? 'var(--color-cp-yellow)' : 'var(--color-cp-red)';
     };
 

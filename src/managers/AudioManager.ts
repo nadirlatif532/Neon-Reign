@@ -333,6 +333,28 @@ export class AudioManager {
         osc.start(now);
         osc.stop(now + 0.2);
     }
+    // Alert sound for encounters
+    playAlert() {
+        const ctx = this.audioContext;
+        const now = ctx.currentTime;
+
+        // High pitched ping
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1200, now);
+        osc.frequency.exponentialRampToValueAtTime(600, now + 0.3);
+
+        gain.gain.setValueAtTime(this.sfxVolume * 0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.3);
+    }
 }
 
 export const audioManager = new AudioManager();
