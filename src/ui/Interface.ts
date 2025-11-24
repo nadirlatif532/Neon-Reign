@@ -1,4 +1,4 @@
-import { gameStore, startMission, refreshMissions, Mission, addEddies, recruitMember, healMember, upgradeMember, captureTerritory, rivalGangManager, attackTerritory, RIDER_CLASSES, removeEncounter } from '@/state/GameStore';
+import { gameStore, startMission, refreshMissions, Mission, addEddies, recruitMember, healMember, upgradeMember, rivalGangManager, attackTerritory, RIDER_CLASSES, removeEncounter } from '@/state/GameStore';
 import { AsciiGenerator } from '@/utils/AsciiGenerator';
 import { audioManager } from '../managers/AudioManager';
 import { saveManager } from '@/managers/SaveManager';
