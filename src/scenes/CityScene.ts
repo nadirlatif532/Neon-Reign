@@ -10,15 +10,18 @@ export class CityScene extends Phaser.Scene {
     create() {
         this.isMobile = this.scale.width <= 768;
 
-        // Background
-        const bgKey = this.isMobile ? 'city_bg_mobile' : 'city_bg_user';
-        const bg = this.add.image(this.scale.width / 2, this.scale.height / 2, bgKey);
+        // Background Video
+        const bgVideo = this.add.video(this.scale.width / 2, this.scale.height / 2, 'city_bg_video');
 
-        // Scale to cover
-        const scaleX = this.scale.width / bg.width;
-        const scaleY = this.scale.height / bg.height;
-        const scale = Math.max(scaleX, scaleY);
-        bg.setScale(scale);
+        // Play the video on loop with 15% volume
+        bgVideo.play(true); // true = loop
+        bgVideo.setVolume(0.15);
+
+        // Scale to fit entire video on screen with zoom out
+        const scaleX = this.scale.width / bgVideo.width;
+        const scaleY = this.scale.height / bgVideo.height;
+        const scale = Math.min(scaleX, scaleY) * 0.4; // 70% scale to zoom out
+        bgVideo.setScale(scale);
 
         // Hit Zones
         this.createHitZones();
@@ -45,9 +48,9 @@ export class CityScene extends Phaser.Scene {
             this.createZone(this.scale.width * 0.5, this.scale.height * 0.5, 200, 150, 'HIDEOUT', 'hideout', 0xfcee0a);
             this.createZone(this.scale.width * 0.5, this.scale.height * 0.75, 200, 120, 'RIPPERDOC', 'ripperdoc', 0x00f0ff);
         } else {
-            this.createZone(this.scale.width * 0.25, this.scale.height * 0.45, 120, 100, 'RIPPERDOC', 'ripperdoc', 0x00f0ff);
-            this.createZone(this.scale.width * 0.5, this.scale.height * 0.55, 150, 150, 'HIDEOUT', 'hideout', 0xfcee0a);
-            this.createZone(this.scale.width * 0.75, this.scale.height * 0.70, 120, 100, 'AFTERLIFE', 'bar', 0xff003c);
+            this.createZone(this.scale.width * 0.65, this.scale.height * 0.40, 120, 100, 'AFTERLIFE', 'bar', 0xff003c);
+            this.createZone(this.scale.width * 0.25, this.scale.height * 0.45, 150, 150, 'HIDEOUT', 'hideout', 0xfcee0a);
+            this.createZone(this.scale.width * 0.80, this.scale.height * 0.60, 120, 100, 'RIPPERDOC', 'ripperdoc', 0x00f0ff);
         }
     }
 

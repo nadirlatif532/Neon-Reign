@@ -23,6 +23,11 @@ export class Preloader extends Phaser.Scene {
             this.load.audio(asset.key, asset.path);
         });
 
+        // Load videos
+        AssetManifest.videos.forEach(asset => {
+            this.load.video(asset.key, asset.path);
+        });
+
         this.load.on('progress', (value: number) => {
             updateLoadingProgress(value);
         });

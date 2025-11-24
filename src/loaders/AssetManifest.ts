@@ -14,6 +14,11 @@ interface AudioAsset {
     path: string;
 }
 
+interface VideoAsset {
+    key: string;
+    path: string;
+}
+
 export const AssetManifest = {
     images: [
         { key: 'city_bg_user', path: 'assets/city.jpg' },
@@ -28,5 +33,8 @@ export const AssetManifest = {
         { key: 'casualty_loop_1', path: 'assets/White Bat Audio - Casualty LOOP 1.wav' },
         { key: 'casualty_loop_2', path: 'assets/White Bat Audio - Casualty LOOP 2.wav' },
         { key: 'casualty_loop_3', path: 'assets/White Bat Audio - Casualty LOOP 3.wav' }
-    ] as AudioAsset[]
+    ] as AudioAsset[],
+    videos: [
+        { key: 'city_bg_video', path: 'assets/animated-city.mp4' }
+    ] as VideoAsset[]
 };

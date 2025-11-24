@@ -29,6 +29,7 @@ export class Interface {
     this.container = document.getElementById('ui-layer')!;
     this.hudContainer = document.createElement('div');
     this.modalContainer = document.createElement('div');
+    this.modalContainer.className = 'pointer-events-none';
 
     this.container.appendChild(this.hudContainer);
     this.container.appendChild(this.modalContainer);
@@ -37,12 +38,6 @@ export class Interface {
     this.setupFooter();
     this.setupListeners();
     this.setupStoreSubscription();
-
-    // Show tutorial on first load
-    const tutorialSeen = localStorage.getItem('tutorial-seen');
-    if (!tutorialSeen) {
-      setTimeout(() => this.showTutorial(), 1000);
-    }
   }
 
   private setupHUD() {
@@ -71,7 +66,7 @@ export class Interface {
     setTimeout(() => {
       document.getElementById('tutorial-btn')?.addEventListener('click', () => {
         audioManager.playClick();
-        this.showTutorial();
+        (window as any).showTutorial?.();
       });
     }, 100);
   }
