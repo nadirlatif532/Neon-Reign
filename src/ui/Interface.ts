@@ -368,7 +368,7 @@ export class Interface {
         el.innerHTML = `
                 <div class="absolute inset-0 bg-cp-yellow/30 rounded-full animate-ping"></div>
                 <div class="absolute inset-0 bg-cp-red/20 rotate-45 border-2 border-cp-yellow shadow-[0_0_15px_var(--cp-yellow)] transition-transform group-hover:scale-110 bg-black/80"></div>
-                <div class="relative text-cp-yellow text-4xl font-bold drop-shadow-[0_0_5px_var(--cp-red)] animate-bounce">!</div>
+                <div class="relative text-cp-yellow text-4xl font-bold drop-shadow-[0_0_5px_var(--cp-red)] animate-pulse">!</div>
                 <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-black/90 border border-cp-yellow text-cp-yellow text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-cyber tracking-wider">
                     SIGNAL DETECTED
                 </div>
@@ -438,8 +438,8 @@ export class Interface {
 
   private showEncounterResult(message: string, success: boolean, effects?: {
     cost?: number;
-    rewards?: { eddies?: number; xp?: number; rep?: number; health?: number };
-    penalties?: { eddies?: number; health?: number; rep?: number };
+    rewards?: { eddies?: number; xp?: number; rep?: number; health?: number; targetName?: string };
+    penalties?: { eddies?: number; health?: number; rep?: number; targetName?: string };
   }) {
     const overlay = this.createOverlay();
     const modal = document.createElement('div');
@@ -470,7 +470,8 @@ export class Interface {
           effectsList.push(`<div class="flex items-center gap-2 text-green-400"><span class="text-2xl">🏆</span> <span>+${effects.rewards.rep} REP</span></div>`);
         }
         if (effects.rewards.health) {
-          effectsList.push(`<div class="flex items-center gap-2 text-green-500"><span class="text-2xl">❤️</span> <span>+${effects.rewards.health} HP</span></div>`);
+          const target = effects.rewards.targetName ? ` (${effects.rewards.targetName})` : '';
+          effectsList.push(`<div class="flex items-center gap-2 text-green-500"><span class="text-2xl">❤️</span> <span>+${effects.rewards.health} HP${target}</span></div>`);
         }
       }
 
@@ -483,7 +484,8 @@ export class Interface {
           effectsList.push(`<div class="flex items-center gap-2 text-orange-500"><span class="text-2xl">📉</span> <span>${effects.penalties.rep} REP</span></div>`);
         }
         if (effects.penalties.health) {
-          effectsList.push(`<div class="flex items-center gap-2 text-cp-red"><span class="text-2xl">💔</span> <span>-${effects.penalties.health} HP DAMAGE</span></div>`);
+          const target = effects.penalties.targetName ? ` (${effects.penalties.targetName})` : '';
+          effectsList.push(`<div class="flex items-center gap-2 text-cp-red"><span class="text-2xl">💔</span> <span>-${effects.penalties.health} HP DAMAGE${target}</span></div>`);
         }
       }
 
@@ -555,7 +557,7 @@ export class Interface {
 
     modal.innerHTML = `
       <div class="bg-cp-cyan/10 border-b-2 border-cp-cyan p-5 flex justify-between items-center shrink-0">
-        <h2 class="text-cp-cyan m-0 text-3xl drop-shadow-[0_0_10px_var(--cp-cyan)] font-cyber font-bold">GANG HQ</h2>
+        <h2 class="text-cp-cyan m-0 text-3xl drop-shadow-[0_0_10px_var(--cp-cyan)] font-cyber font-bold">HIDEOUT</h2>
         <button id="close-modal" class="bg-transparent border-2 border-cp-red text-cp-red text-3xl w-10 h-10 cursor-pointer transition-all duration-300 hover:bg-cp-red hover:text-white hover:rotate-90 flex items-center justify-center font-bold">&times;</button>
       </div>
       
@@ -837,13 +839,13 @@ export class Interface {
         </div>
 
         <!-- Right Column: Crew Selection -->
-        <div class="flex flex-col h-full">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-cp-yellow m-0 font-cyber text-xl font-bold">SELECT CREW</h3>
-            <span class="text-xs text-gray-400">MAX 3 MEMBERS</span>
+        <div class="flex flex-col h-full border-l border-cp-cyan/30 pl-5">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="text-cp-yellow m-0 font-cyber text-lg font-bold">SELECT CREW</h3>
+            <span class="text-[10px] text-gray-400">MAX 3</span>
           </div>
           
-          <div id="crew-list" class="flex-1 overflow-y-auto max-h-[400px] space-y-3 pr-2">
+          <div id="crew-list" class="flex-1 overflow-y-auto max-h-[300px] space-y-2 pr-1">
             <!-- Crew members go here -->
           </div>
         </div>
@@ -1024,7 +1026,8 @@ export class Interface {
             audioManager.playPurchase();
             this.showToast('MISSION STARTED', 'success');
             sendBtn.textContent = 'SENT!';
-            // Panel stays open - user can close manually with X button
+            // Close the modal after a brief delay
+            setTimeout(() => overlay.remove(), 800);
           } else {
             this.showToast(result.reason || 'FAILED', 'error');
             sendBtn.disabled = false;
@@ -1179,9 +1182,10 @@ export class Interface {
       const reflexCost = member.stats.reflex * 100;
 
       memberCard.innerHTML = `
-        <div class="flex justify-between items-start mb-3">
+        <div class="flex justify-between items-start mb-2">
           <div>
-            <div class="text-cp-cyan font-bold text-lg font-cyber">${member.name} <span class="text-sm text-cp-yellow">LVL ${member.level}</span></div>
+            <div class="text-cp-cyan font-bold text-lg font-cyber leading-none">${member.name} <span class="text-xs text-cp-yellow">LVL ${member.level}</span></div>
+            <div class="text-xs text-gray-400 font-mono mt-1">COOL: <span class="text-white">${member.stats.cool}</span> | REF: <span class="text-white">${member.stats.reflex}</span></div>
           </div>
           <div class="text-sm font-bold ${member.injured ? 'text-cp-red' : 'text-green-500'}">${member.injured ? 'INJURED' : 'HEALTHY'}</div>
         </div>

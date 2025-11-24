@@ -46,9 +46,9 @@ export class EncounterManager {
         // Format: { x: center%, y: center%, width: %, height: % }
         const exclusionZones = [
             // Desktop positions (will work fine for mobile too as fallback)
-            { x: 65, y: 40, width: 15, height: 15 }, // Afterlife
-            { x: 25, y: 45, width: 18, height: 18 }, // Hideout/HQ
-            { x: 80, y: 60, width: 15, height: 15 }, // Ripperdoc
+            { x: 65, y: 40, width: 25, height: 25 }, // Afterlife (increased from 15x15)
+            { x: 25, y: 45, width: 28, height: 28 }, // Hideout/HQ (increased from 18x18)
+            { x: 80, y: 60, width: 25, height: 25 }, // Ripperdoc (increased from 15x15)
         ];
 
         // Try to find a valid spawn position (with collision detection)
@@ -57,21 +57,38 @@ export class EncounterManager {
         let attempts = 0;
         const maxAttempts = 50;
 
+        // Encounter marker is w-16 h-16 (64px), which is roughly 4% of viewport width
+        // The diamond rotated 45deg takes up the full space
+        const markerSize = 4; // percent
+
         do {
             // Generate random position (avoiding edges and footer)
             x = Math.floor(Math.random() * 80) + 10; // 10-90%
             y = Math.floor(Math.random() * 70) + 10; // 10-80%
 
-            // Check if position collides with any exclusion zone
+            // Check if the ENTIRE marker area collides with any exclusion zone
+            // We need to check the bounds of the marker, not just its center
             const collides = exclusionZones.some(zone => {
                 const halfWidth = zone.width / 2;
                 const halfHeight = zone.height / 2;
-                return (
-                    x >= zone.x - halfWidth &&
-                    x <= zone.x + halfWidth &&
-                    y >= zone.y - halfHeight &&
-                    y <= zone.y + halfHeight
-                );
+                const halfMarker = markerSize / 2;
+
+                // Check if marker's bounding box overlaps with exclusion zone
+                const markerLeft = x - halfMarker;
+                const markerRight = x + halfMarker;
+                const markerTop = y - halfMarker;
+                const markerBottom = y + halfMarker;
+
+                const zoneLeft = zone.x - halfWidth;
+                const zoneRight = zone.x + halfWidth;
+                const zoneTop = zone.y - halfHeight;
+                const zoneBottom = zone.y + halfHeight;
+
+                // AABB collision detection
+                return !(markerRight < zoneLeft ||
+                    markerLeft > zoneRight ||
+                    markerBottom < zoneTop ||
+                    markerTop > zoneBottom);
             });
 
             if (!collides) break; // Found valid position
@@ -94,8 +111,8 @@ export class EncounterManager {
         success: boolean;
         effects: {
             cost?: number;
-            rewards?: { eddies?: number; xp?: number; rep?: number; health?: number };
-            penalties?: { eddies?: number; health?: number; rep?: number };
+            rewards?: { eddies?: number; xp?: number; rep?: number; health?: number; targetName?: string };
+            penalties?: { eddies?: number; health?: number; rep?: number; targetName?: string };
         };
     } {
         const encounter = ENCOUNTERS.find(e => e.id === encounterId);
@@ -112,8 +129,8 @@ export class EncounterManager {
         // Track all applied effects
         const appliedEffects: {
             cost?: number;
-            rewards?: { eddies?: number; xp?: number; rep?: number; health?: number };
-            penalties?: { eddies?: number; health?: number; rep?: number };
+            rewards?: { eddies?: number; xp?: number; rep?: number; health?: number; targetName?: string };
+            penalties?: { eddies?: number; health?: number; rep?: number; targetName?: string };
         } = {};
 
         // Check costs
@@ -161,6 +178,7 @@ export class EncounterManager {
                     appliedEffects.rewards.health = result.rewards.health;
                     const luckyMember = damagedMembers[Math.floor(Math.random() * damagedMembers.length)];
                     damageMember(luckyMember.id, -result.rewards.health);
+                    appliedEffects.rewards.targetName = luckyMember.name;
                 }
             }
         }
@@ -182,6 +200,7 @@ export class EncounterManager {
                     appliedEffects.penalties.health = result.penalties.health;
                     const victim = validMembers[Math.floor(Math.random() * validMembers.length)];
                     damageMember(victim.id, result.penalties.health);
+                    appliedEffects.penalties.targetName = victim.name;
                 }
             }
         }

@@ -39,14 +39,13 @@ export class RivalGangManager {
             }
         });
 
-        // Assign ALL territories to gangs round-robin
-        const allTerritories = state.territories;
-        allTerritories.forEach((territory: any, index: number) => {
+        // Assign territories to gangs (but skip player-controlled ones)
+        const uncontrolledTerritories = state.territories.filter((t: any) => !t.controlled);
+        uncontrolledTerritories.forEach((territory: any, index: number) => {
             const gangIndex = index % this.gangs.length;
             const gang = this.gangs[gangIndex];
 
             territory.rivalGang = gang.id;
-            territory.controlled = false; // Ensure not player controlled
             gang.territories.push(territory.id);
             console.log(`Assigned ${territory.name} to ${gang.name}`);
         });
