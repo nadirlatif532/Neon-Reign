@@ -35,9 +35,10 @@ export class Interface {
     this.container.appendChild(this.modalContainer);
 
     this.setupHUD();
-    this.setupFooter();
+
     this.setupListeners();
     this.setupStoreSubscription();
+    this.startFlavorTextRotation();
   }
 
   private setupHUD() {
@@ -71,26 +72,7 @@ export class Interface {
     }, 100);
   }
 
-  private setupFooter() {
-    const footer = document.createElement('div');
-    footer.className = 'absolute bottom-0 left-0 w-full pointer-events-none z-40 overflow-hidden bg-black/80 border-t border-cp-cyan/50 backdrop-blur-sm';
-    footer.innerHTML = `
-      <div class="flex items-center justify-between px-4 py-1">
-        <div class="flex items-center gap-2">
-          <div class="w-2 h-2 bg-cp-red animate-pulse"></div>
-          <div class="text-xs text-cp-cyan font-mono tracking-widest">NET.ACCESS: CONNECTED</div>
-        </div>
-        <div class="flex-1 text-center overflow-hidden mx-4">
-           <div id="flavor-text" class="text-cp-yellow font-cyber text-sm tracking-wide whitespace-nowrap animate-pulse-cyber">
-             INITIALIZING SYSTEM...
-           </div>
-        </div>
-        <div class="text-xs text-gray-500 font-mono">V.2.0.77</div>
-      </div>
-    `;
-    this.container.appendChild(footer);
-    this.startFlavorTextRotation();
-  }
+
 
   private startFlavorTextRotation() {
     const textEl = document.getElementById('flavor-text');
