@@ -60,6 +60,7 @@ export class Interface {
           <div class="text-xl font-bold text-cp-yellow uppercase flex items-center font-cyber">
             MEMBERS: <span id="hud-members" class="text-white ml-2">0</span>
           </div>
+          <button id="settings-btn" class="cyber-btn text-xs ml-2" title="Settings">⚙</button>
           <button id="tutorial-btn" class="cyber-btn text-xs" title="Show Tutorial">?</button>
         </div>
       </header>
@@ -71,7 +72,138 @@ export class Interface {
         audioManager.playClick();
         (window as any).showTutorial?.();
       });
+
+      // Add settings button listener
+      document.getElementById('settings-btn')?.addEventListener('click', () => {
+        audioManager.playClick();
+        this.openSettingsPanel();
+      });
     }, 100);
+  }
+
+  private openSettingsPanel() {
+    const settingsOverlay = document.getElementById('settings-overlay');
+    if (!settingsOverlay) return;
+
+    // Show overlay
+    settingsOverlay.classList.remove('tutorial-hidden');
+    audioManager.playPanelOpen();
+
+    // Load current settings
+    const musicVolumeSlider = document.getElementById('music-volume') as HTMLInputElement;
+    const sfxVolumeSlider = document.getElementById('sfx-volume') as HTMLInputElement;
+    const musicToggle = document.getElementById('music-toggle') as HTMLInputElement;
+    const sfxToggle = document.getElementById('sfx-toggle') as HTMLInputElement;
+    const musicVolumeValue = document.getElementById('music-volume-value');
+    const sfxVolumeValue = document.getElementById('sfx-volume-value');
+
+    if (musicVolumeSlider) {
+      musicVolumeSlider.value = audioManager.getMusicVolume().toString();
+      if (musicVolumeValue) musicVolumeValue.textContent = `${audioManager.getMusicVolume()}%`;
+    }
+    if (sfxVolumeSlider) {
+      sfxVolumeSlider.value = audioManager.getSfxVolume().toString();
+      if (sfxVolumeValue) sfxVolumeValue.textContent = `${audioManager.getSfxVolume()}%`;
+    }
+    if (musicToggle) musicToggle.checked = audioManager.isMusicEnabled();
+    if (sfxToggle) sfxToggle.checked = audioManager.isSfxEnabled();
+
+    // Setup event listeners (one-time setup)
+    if (!(settingsOverlay as any)._listenersAdded) {
+      (settingsOverlay as any)._listenersAdded = true;
+
+      // Close button
+      document.getElementById('settings-close-btn')?.addEventListener('click', () => {
+        audioManager.playPanelClose();
+        settingsOverlay.classList.add('tutorial-hidden');
+      });
+
+      // Music volume slider
+      musicVolumeSlider?.addEventListener('input', (e) => {
+        const value = parseInt((e.target as HTMLInputElement).value);
+        audioManager.setMusicVolume(value);
+        if (musicVolumeValue) musicVolumeValue.textContent = `${value}%`;
+        this.saveSettings();
+      });
+
+      // SFX volume slider
+      sfxVolumeSlider?.addEventListener('input', (e) => {
+        const value = parseInt((e.target as HTMLInputElement).value);
+        audioManager.setSfxVolume(value);
+        if (sfxVolumeValue) sfxVolumeValue.textContent = `${value}%`;
+        audioManager.playClick();
+        this.saveSettings();
+      });
+
+      // Music toggle
+      musicToggle?.addEventListener('change', (e) => {
+        const enabled = (e.target as HTMLInputElement).checked;
+        audioManager.setMusicEnabled(enabled);
+        audioManager.playClick();
+        this.saveSettings();
+      });
+
+      // SFX toggle
+      sfxToggle?.addEventListener('change', (e) => {
+        const enabled = (e.target as HTMLInputElement).checked;
+        audioManager.setSfxEnabled(enabled);
+        if (enabled) audioManager.playClick();
+        this.saveSettings();
+      });
+
+      // Reset progress button
+      const resetBtn = document.getElementById('reset-progress-btn');
+      let resetConfirmTimeout: number | null = null;
+      let isWaitingConfirm = false;
+
+      resetBtn?.addEventListener('click', () => {
+        if (!isWaitingConfirm) {
+          isWaitingConfirm = true;
+          resetBtn.textContent = 'ARE YOU SURE?';
+          resetBtn.classList.add('bg-cp-red/60', 'animate-pulse');
+          audioManager.playError();
+
+          resetConfirmTimeout = window.setTimeout(() => {
+            isWaitingConfirm = false;
+            resetBtn.textContent = 'RESET PROGRESS';
+            resetBtn.classList.remove('bg-cp-red/60', 'animate-pulse');
+          }, 3000);
+        } else {
+          if (resetConfirmTimeout) clearTimeout(resetConfirmTimeout);
+
+          if (confirm('This will permanently delete all your progress. Are you absolutely sure?')) {
+            audioManager.playError();
+            this.resetGame();
+            settingsOverlay.classList.add('tutorial-hidden');
+            this.showToast('GAME RESET COMPLETE', 'success');
+          }
+
+          isWaitingConfirm = false;
+          resetBtn.textContent = 'RESET PROGRESS';
+          resetBtn.classList.remove('bg-cp-red/60', 'animate-pulse');
+        }
+      });
+    }
+  }
+
+  private saveSettings() {
+    const { saveManager } = require('@/managers/SaveManager');
+    saveManager.saveSettings({
+      musicVolume: audioManager.getMusicVolume(),
+      sfxVolume: audioManager.getSfxVolume(),
+      musicEnabled: audioManager.isMusicEnabled(),
+      sfxEnabled: audioManager.isSfxEnabled()
+    });
+  }
+
+  private resetGame() {
+    const { saveManager } = require('@/managers/SaveManager');
+
+    // Clear save data
+    saveManager.clearSaveData();
+
+    // Reload page to reset to initial state
+    window.location.reload();
   }
 
 

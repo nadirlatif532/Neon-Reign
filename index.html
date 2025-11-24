@@ -180,6 +180,66 @@
         </div>
     </div>
 
+    <!-- Settings Overlay -->
+    <div id="settings-overlay" class="tutorial-hidden">
+        <div id="settings-panel" class="bg-black/95 border-2 border-cp-cyan p-6 rounded-lg max-w-md w-full shadow-2xl">
+            <div class="tutorial-header">
+                <h2 class="text-cp-yellow font-cyber text-2xl">SETTINGS</h2>
+                <button id="settings-close-btn"
+                    class="text-4xl text-cp-cyan hover:text-white transition-colors">&times;</button>
+            </div>
+            <div class="space-y-6 mt-6">
+                <!-- Music Control -->
+                <div class="bg-black/40 p-4 border border-cp-cyan/30 rounded">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-cp-cyan font-cyber text-lg">MUSIC</h3>
+                        <label class="relative inline-block w-14 h-8">
+                            <input type="checkbox" id="music-toggle" class="sr-only peer" checked>
+                            <div
+                                class="w-full h-full bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-cp-cyan">
+                            </div>
+                        </label>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-white text-sm">VOL:</span>
+                        <input type="range" id="music-volume" min="0" max="100" value="15"
+                            class="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-cyan">
+                        <span id="music-volume-value" class="text-cp-cyan font-mono text-sm w-12 text-right">15%</span>
+                    </div>
+                </div>
+
+                <!-- SFX Control -->
+                <div class="bg-black/40 p-4 border border-cp-yellow/30 rounded">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-cp-yellow font-cyber text-lg">SFX</h3>
+                        <label class="relative inline-block w-14 h-8">
+                            <input type="checkbox" id="sfx-toggle" class="sr-only peer" checked>
+                            <div
+                                class="w-full h-full bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-cp-yellow">
+                            </div>
+                        </label>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-white text-sm">VOL:</span>
+                        <input type="range" id="sfx-volume" min="0" max="100" value="40"
+                            class="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-yellow">
+                        <span id="sfx-volume-value" class="text-cp-yellow font-mono text-sm w-12 text-right">40%</span>
+                    </div>
+                </div>
+
+                <!-- Reset Progress -->
+                <div class="bg-black/40 p-4 border border-cp-red/30 rounded">
+                    <h3 class="text-cp-red font-cyber text-lg mb-3">DANGER ZONE</h3>
+                    <button id="reset-progress-btn"
+                        class="w-full bg-cp-red/20 hover:bg-cp-red/40 border-2 border-cp-red text-cp-red font-cyber py-3 px-4 rounded-lg transition-all duration-200 uppercase tracking-wider">
+                        RESET PROGRESS
+                    </button>
+                    <p class="text-gray-500 text-xs mt-2 text-center">This will delete all your game progress!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Tutorial Control Script -->
     <script>
         // Simple tutorial control with localStorage persistence

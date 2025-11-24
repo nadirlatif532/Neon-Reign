@@ -572,6 +572,60 @@ export const damageMember = (memberId: number, amount: number) => {
     }
 };
 
+// ==================== SAVE SYSTEM ====================
+
+/**
+ * Load saved game state (called by SaveManager)
+ */
+export const loadGameState = (savedState: GameState) => {
+    // Update all keys from saved state
+    Object.keys(savedState).forEach(key => {
+        gameStore.setKey(key as keyof GameState, (savedState as any)[key]);
+    });
+    console.log('[GameStore] Game state loaded from save');
+};
+
+/**
+ * Reset game state to initial values
+ */
+export const resetGameState = () => {
+    gameStore.setKey('eddies', 1000);
+    gameStore.setKey('rep', 10);
+    gameStore.setKey('members', [
+        {
+            id: 1,
+            name: 'V',
+            class: 'SOLO',
+            description: 'Your first crew member and right-hand.',
+            art: 'biker',
+            status: 'IDLE',
+            level: 1,
+            xp: 0,
+            xpToNext: 100,
+            health: 100,
+            maxHealth: 100,
+            injured: false,
+            stats: {
+                cool: 4,
+                reflex: 4
+            },
+            currentMission: null
+        }
+    ]);
+    gameStore.setKey('territories', [
+        { id: 1, name: 'WATSON', controlled: true, income: 50 },
+        { id: 2, name: 'WESTBROOK', controlled: false, income: 75 },
+        { id: 3, name: 'CITY CENTER', controlled: false, income: 100 },
+        { id: 4, name: 'SANTO DOMINGO', controlled: false, income: 60 },
+        { id: 5, name: 'PACIFICA', controlled: false, income: 80 }
+    ]);
+    gameStore.setKey('activeMissions', []);
+    gameStore.setKey('activeEncounters', []);
+    generateMissions();
+    rivalGangManager.initialize();
+    console.log('[GameStore] Game state reset to initial values');
+};
+
 // Initial Setup
 generateMissions();
 

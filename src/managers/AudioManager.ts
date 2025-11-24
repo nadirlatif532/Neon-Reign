@@ -3,7 +3,10 @@ export class AudioManager {
     private musicVolume: number = 0.15;
     private sfxVolume: number = 0.4;
     private musicPlaying: boolean = false;
+    private musicEnabled: boolean = true;
+    private sfxEnabled: boolean = true;
     private currentSource: AudioBufferSourceNode | null = null;
+    private currentGainNode: GainNode | null = null;
     private loadedBuffers: { [url: string]: AudioBuffer } = {};
 
     private musicTracks: string[] = [
@@ -59,6 +62,7 @@ export class AudioManager {
 
         // Store references
         this.currentSource = source;
+        this.currentGainNode = gainNode;
 
         // When track ends, play another random track
         source.onended = () => {
@@ -90,10 +94,12 @@ export class AudioManager {
             this.currentSource.stop();
             this.currentSource = null;
         }
+        this.currentGainNode = null;
     }
 
     // UI Click sound
     playClick() {
+        if (!this.sfxEnabled) return;
         if (this.audioContext.state === 'suspended') {
             this.audioContext.resume();
         }
@@ -120,6 +126,7 @@ export class AudioManager {
 
     // Panel open/close sound
     playPanelOpen() {
+        if (!this.sfxEnabled) return;
         if (this.audioContext.state === 'suspended') {
             this.audioContext.resume();
         }
@@ -145,6 +152,7 @@ export class AudioManager {
     }
 
     playPanelClose() {
+        if (!this.sfxEnabled) return;
         if (this.audioContext.state === 'suspended') {
             this.audioContext.resume();
         }
@@ -171,6 +179,7 @@ export class AudioManager {
 
     // Mission complete sound
     playMissionComplete() {
+        if (!this.sfxEnabled) return;
         const ctx = this.audioContext;
         const now = ctx.currentTime;
 
@@ -196,6 +205,7 @@ export class AudioManager {
 
     // Level up sound
     playLevelUp() {
+        if (!this.sfxEnabled) return;
         const ctx = this.audioContext;
         const now = ctx.currentTime;
 
@@ -221,6 +231,7 @@ export class AudioManager {
 
     // Injury sound
     playInjury() {
+        if (!this.sfxEnabled) return;
         const ctx = this.audioContext;
         const now = ctx.currentTime;
 
@@ -244,6 +255,7 @@ export class AudioManager {
 
     // Purchase/Capture sound
     playPurchase() {
+        if (!this.sfxEnabled) return;
         const ctx = this.audioContext;
         const now = ctx.currentTime;
 
@@ -268,6 +280,7 @@ export class AudioManager {
 
     // Heal sound
     playHeal() {
+        if (!this.sfxEnabled) return;
         const ctx = this.audioContext;
         const now = ctx.currentTime;
 
@@ -291,6 +304,7 @@ export class AudioManager {
 
     // Upgrade sound
     playUpgrade() {
+        if (!this.sfxEnabled) return;
         const ctx = this.audioContext;
         const now = ctx.currentTime;
 
@@ -314,6 +328,7 @@ export class AudioManager {
 
     // Error/Insufficient funds sound
     playError() {
+        if (!this.sfxEnabled) return;
         const ctx = this.audioContext;
         const now = ctx.currentTime;
 
@@ -335,6 +350,7 @@ export class AudioManager {
     }
     // Alert sound for encounters
     playAlert() {
+        if (!this.sfxEnabled) return;
         const ctx = this.audioContext;
         const now = ctx.currentTime;
 
@@ -354,6 +370,77 @@ export class AudioManager {
 
         osc.start(now);
         osc.stop(now + 0.3);
+    }
+
+    // ==================== VOLUME CONTROLS ====================
+
+    /**
+     * Set music volume (0-100)
+     */
+    setMusicVolume(volume: number): void {
+        this.musicVolume = Math.max(0, Math.min(100, volume)) / 100;
+
+        // Update currently playing music volume in real-time
+        if (this.currentGainNode) {
+            this.currentGainNode.gain.setValueAtTime(this.musicVolume, this.audioContext.currentTime);
+        }
+
+        console.log('[AudioManager] Music volume set to:', this.musicVolume);
+    }
+
+    /**
+     * Set SFX volume (0-100)
+     */
+    setSfxVolume(volume: number): void {
+        this.sfxVolume = Math.max(0, Math.min(100, volume)) / 100;
+        console.log('[AudioManager] SFX volume set to:', this.sfxVolume);
+    }
+
+    /**
+     * Get music volume (0-100)
+     */
+    getMusicVolume(): number {
+        return Math.round(this.musicVolume * 100);
+    }
+
+    /**
+     * Get SFX volume (0-100)
+     */
+    getSfxVolume(): number {
+        return Math.round(this.sfxVolume * 100);
+    }
+
+    /**
+     * Enable or disable music
+     */
+    setMusicEnabled(enabled: boolean): void {
+        this.musicEnabled = enabled;
+        if (!enabled && this.musicPlaying) {
+            this.stopBackgroundMusic();
+        } else if (enabled && !this.musicPlaying) {
+            this.startBackgroundMusic();
+        }
+    }
+
+    /**
+     * Enable or disable SFX
+     */
+    setSfxEnabled(enabled: boolean): void {
+        this.sfxEnabled = enabled;
+    }
+
+    /**
+     * Check if music is enabled
+     */
+    isMusicEnabled(): boolean {
+        return this.musicEnabled;
+    }
+
+    /**
+     * Check if SFX is enabled
+     */
+    isSfxEnabled(): boolean {
+        return this.sfxEnabled;
     }
 }
 

@@ -376,3 +376,76 @@ body {
 .tutorial-body::-webkit-scrollbar-thumb:hover {
     background: var(--color-cp-cyan);
 }
+
+/* Settings Overlay */
+#settings-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 99999;
+    pointer-events: auto;
+    animation: fadeIn 0.3s ease-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#settings-panel {
+    animation: modalSlideIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Custom Range Sliders */
+.slider-cyan::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--color-cp-cyan);
+    cursor: pointer;
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--color-cp-cyan);
+    transition: all 0.2s;
+}
+
+.slider-cyan::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 20px var(--color-cp-cyan);
+    transform: scale(1.2);
+}
+
+.slider-cyan::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: var(--color-cp-cyan);
+    cursor: pointer;
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--color-cp-cyan);
+    border: none;
+}
+
+.slider-yellow::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--color-cp-yellow);
+    cursor: pointer;
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--color-cp-yellow);
+    transition: all 0.2s;
+}
+
+.slider-yellow::-webkit-slider-thumb:hover {
+    box-shadow: 0 0 20px var(--color-cp-yellow);
+    transform: scale(1.2);
+}
+
+.slider-yellow::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: var(--color-cp-yellow);
+    cursor: pointer;
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--color-cp-yellow);
+    border: none;
+}
