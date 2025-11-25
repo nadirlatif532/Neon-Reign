@@ -268,8 +268,8 @@ export class WarfareManager {
                 territory.heat = Math.min(100, territory.heat + 15);
 
                 if (op.initiatorGangId === 'PLAYER') {
-                    // Rebalanced: Loot is 5x income (approx 250-750) vs 100 cost
-                    const loot = Math.floor(territory.income * 5);
+                    // Rebalanced: Loot is 3x income (approx 150-450) vs 100 cost
+                    const loot = Math.floor(territory.income * 3);
                     addEddies(loot);
                     this.notify(`Raid successful! Weakened ${territory.name} and stole ${loot}€ (Heat +15)`, 'success');
                 } else {
@@ -380,10 +380,10 @@ export class WarfareManager {
         if (unavailable.length > 0) return { success: false, message: 'Some members are unavailable' };
 
         // Calculate Power
-        // Formula: (Sum of Stats * 2) + (Sum of Levels * 5)
+        // Formula: (Sum of Stats * 2) + (Sum of Levels * 3)
         // ARMORY Upgrade: +5% Power per level
         let power = members.reduce((sum, m) => {
-            return sum + ((m.stats.cool + m.stats.reflex) * 2) + (m.level * 5);
+            return sum + ((m.stats.cool + m.stats.reflex) * 2) + (m.level * 3);
         }, 0);
 
         const armory = state.upgrades.find(u => u.id === 'ARMORY');

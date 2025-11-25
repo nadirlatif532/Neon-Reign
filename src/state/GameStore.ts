@@ -146,7 +146,8 @@ export const gameStore = map<GameState>({
             slots: 1,
             coordinates: { x: 45, y: 20 },
             polygonPoints: "25,25 35,15 55,10 75,15 80,25 70,35 60,40 40,40 30,35",
-            color: "#FF4444"
+            color: "#FF4444",
+            intel: 0
         },
         {
             id: 2,
@@ -161,7 +162,8 @@ export const gameStore = map<GameState>({
             slots: 2,
             coordinates: { x: 80, y: 35 },
             polygonPoints: "70,35 80,25 95,30 98,50 90,60 75,55 65,45",
-            color: "#FF8800"
+            color: "#FF8800",
+            intel: 0
         },
         {
             id: 3,
@@ -176,7 +178,8 @@ export const gameStore = map<GameState>({
             slots: 3,
             coordinates: { x: 50, y: 45 },
             polygonPoints: "35,40 45,38 60,40 65,50 55,55 45,55 35,50",
-            color: "#00FFFF"
+            color: "#00FFFF",
+            intel: 0
         },
         {
             id: 4,
@@ -191,7 +194,8 @@ export const gameStore = map<GameState>({
             slots: 2,
             coordinates: { x: 45, y: 60 },
             polygonPoints: "30,55 45,55 60,52 65,60 60,70 45,72 35,68 30,60",
-            color: "#44FF44"
+            color: "#44FF44",
+            intel: 0
         },
         {
             id: 5,
@@ -206,7 +210,8 @@ export const gameStore = map<GameState>({
             slots: 1,
             coordinates: { x: 75, y: 70 },
             polygonPoints: "65,60 75,55 90,60 95,80 85,85 70,80 60,70",
-            color: "#4444FF"
+            color: "#4444FF",
+            intel: 0
         },
         {
             id: 6,
@@ -221,7 +226,8 @@ export const gameStore = map<GameState>({
             slots: 1,
             coordinates: { x: 30, y: 75 },
             polygonPoints: "20,65 35,68 45,72 55,75 50,88 35,90 20,85 15,75",
-            color: "#AA00FF"
+            color: "#AA00FF",
+            intel: 0
         },
         {
             id: 7,
@@ -236,7 +242,8 @@ export const gameStore = map<GameState>({
             slots: 3,
             coordinates: { x: 50, y: 95 },
             polygonPoints: "5,85 20,85 35,90 50,88 65,85 80,85 95,80 98,100 2,100",
-            color: "#FFD700"
+            color: "#FFD700",
+            intel: 100
         }
     ],
     upgrades: [
@@ -306,7 +313,7 @@ export const healMember = (memberId: number): boolean => {
         // MEDBAY Upgrade: -10% Healing Cost per level
         const medbay = state.upgrades.find(u => u.id === 'MEDBAY');
         const discount = medbay ? medbay.level * 0.1 : 0;
-        const healCost = Math.floor(200 * (1 - discount));
+        const healCost = Math.floor(500 * (1 - discount));
 
         if (state.eddies >= healCost) {
             addEddies(-healCost);
@@ -438,9 +445,9 @@ export const completeMission = (activeMissionId: number) => {
     const teamSize = members.length;
 
     // Calculate Team Power
-    // New Formula: (Sum of Stats * 2) + (Sum of Levels * 5)
+    // New Formula: (Sum of Stats * 2) + (Sum of Levels * 3)
     let teamPower = members.reduce((sum, m) => {
-        return sum + ((m.stats.cool + m.stats.reflex) * 2) + (m.level * 5);
+        return sum + ((m.stats.cool + m.stats.reflex) * 2) + (m.level * 3);
     }, 0);
 
     // Solo Passive: +10% Success Chance (effectively +10% power vs difficulty) on HEIST/BOUNTY
@@ -496,7 +503,7 @@ export const completeMission = (activeMissionId: number) => {
     }
 
     // Injury Logic
-    // Risk reduced by 5% per extra team member
+    // Risk reduced by 5% per extra team member, but capped so there's always 5% risk on non-trivial missions
     const riskReduction = (teamSize - 1) * 0.05;
     let baseInjuryChance = Math.max(0.05, mission.injuryChance - riskReduction);
 
@@ -598,45 +605,45 @@ export const completeMission = (activeMissionId: number) => {
 // Mission Templates
 const MISSION_TEMPLATES: Omit<Mission, 'id'>[] = [
     // HEIST missions
-    { name: 'CORP VAULT HEIST', type: 'HEIST', difficulty: 'EXTREME', difficultyRating: 150, duration: 120000, eddiesMin: 800, eddiesMax: 1500, xpMin: 150, xpMax: 250, rep: 10, injuryChance: 0.5, minLevel: 5, minCool: 10, description: 'Break into Arasaka\'s downtown vault. High security, high reward. Bring your best chrome and nerves of steel.' },
-    { name: 'DATA HEIST', type: 'HEIST', difficulty: 'HARD', difficultyRating: 100, duration: 90000, eddiesMin: 400, eddiesMax: 700, xpMin: 100, xpMax: 150, rep: 7, injuryChance: 0.35, minLevel: 3, minCool: 7, description: 'Netrunner needs muscle for a data snatch from a corp server room. In and out, no traces.' },
-    { name: 'STORE ROBBERY', type: 'HEIST', difficulty: 'EASY', difficultyRating: 30, duration: 30000, eddiesMin: 100, eddiesMax: 250, xpMin: 30, xpMax: 60, rep: 2, injuryChance: 0.15, minLevel: 1, minCool: 3, description: 'Local convenience store, minimal security. Quick eddies for a quick job. Don\'t get greedy.' },
-    { name: 'BANK HEIST', type: 'HEIST', difficulty: 'EXTREME', difficultyRating: 170, duration: 120000, eddiesMin: 1200, eddiesMax: 2000, xpMin: 180, xpMax: 270, rep: 13, injuryChance: 0.5, minLevel: 6, minCool: 11, description: 'NCPD pension fund vault. Retire off this score or die trying. Corpo security is no joke.' },
+    { name: 'CORP VAULT HEIST', type: 'HEIST', difficulty: 'EXTREME', difficultyRating: 200, duration: 120000, eddiesMin: 800, eddiesMax: 1500, xpMin: 150, xpMax: 250, rep: 10, injuryChance: 0.5, minLevel: 5, minCool: 10, description: 'Break into Arasaka\'s downtown vault. High security, high reward. Bring your best chrome and nerves of steel.' },
+    { name: 'DATA HEIST', type: 'HEIST', difficulty: 'HARD', difficultyRating: 120, duration: 90000, eddiesMin: 400, eddiesMax: 700, xpMin: 100, xpMax: 150, rep: 7, injuryChance: 0.35, minLevel: 3, minCool: 7, description: 'Netrunner needs muscle for a data snatch from a corp server room. In and out, no traces.' },
+    { name: 'STORE ROBBERY', type: 'HEIST', difficulty: 'EASY', difficultyRating: 30, duration: 30000, eddiesMin: 80, eddiesMax: 200, xpMin: 30, xpMax: 60, rep: 2, injuryChance: 0.15, minLevel: 1, minCool: 3, description: 'Local convenience store, minimal security. Quick eddies for a quick job. Don\'t get greedy.' },
+    { name: 'BANK HEIST', type: 'HEIST', difficulty: 'EXTREME', difficultyRating: 220, duration: 120000, eddiesMin: 1200, eddiesMax: 2000, xpMin: 180, xpMax: 270, rep: 13, injuryChance: 0.5, minLevel: 6, minCool: 11, description: 'NCPD pension fund vault. Retire off this score or die trying. Corpo security is no joke.' },
     { name: 'APARTMENT BURGLARY', type: 'HEIST', difficulty: 'MEDIUM', difficultyRating: 55, duration: 60000, eddiesMin: 180, eddiesMax: 320, xpMin: 45, xpMax: 80, rep: 3, injuryChance: 0.18, minLevel: 2, minCool: 5, description: 'Rich corpo lives here. They\'re out of town. In and out before building security notices.' },
 
     // STREET RACE missions
-    { name: 'MIDNIGHT RACE', type: 'RACE', difficulty: 'HARD', difficultyRating: 110, duration: 90000, eddiesMin: 500, eddiesMax: 800, xpMin: 120, xpMax: 180, rep: 8, injuryChance: 0.3, minLevel: 4, minReflex: 8, description: 'Illegal street race through downtown. NCPD is watching. Fast reflexes and zero hesitation required.' },
+    { name: 'MIDNIGHT RACE', type: 'RACE', difficulty: 'HARD', difficultyRating: 130, duration: 90000, eddiesMin: 500, eddiesMax: 800, xpMin: 120, xpMax: 180, rep: 8, injuryChance: 0.3, minLevel: 4, minReflex: 8, description: 'Illegal street race through downtown. NCPD is watching. Fast reflexes and zero hesitation required.' },
     { name: 'STREET SPRINT', type: 'RACE', difficulty: 'MEDIUM', difficultyRating: 60, duration: 60000, eddiesMin: 200, eddiesMax: 400, xpMin: 60, xpMax: 100, rep: 4, injuryChance: 0.2, minLevel: 2, minReflex: 5, description: 'Underground racing circuit needs a rider. Beat the clock, earn the cred. Watch for fixers trying to rig the game.' },
-    { name: 'DELIVERY RUN', type: 'RACE', difficulty: 'EASY', difficultyRating: 25, duration: 30000, eddiesMin: 80, eddiesMax: 150, xpMin: 25, xpMax: 50, rep: 1, injuryChance: 0.1, minLevel: 1, minReflex: 3, description: 'Get this package to Japantown. Fast. No questions asked. Payment on delivery.' },
-    { name: 'HIGHWAY CHASE', type: 'RACE', difficulty: 'HARD', difficultyRating: 105, duration: 90000, eddiesMin: 480, eddiesMax: 720, xpMin: 105, xpMax: 165, rep: 7, injuryChance: 0.32, minLevel: 4, minReflex: 9, description: 'Outrun MaxTac on the expressway. Survive and the payout is yours. Get caught and you\'re flatlined.' },
+    { name: 'DELIVERY RUN', type: 'RACE', difficulty: 'EASY', difficultyRating: 25, duration: 30000, eddiesMin: 60, eddiesMax: 120, xpMin: 25, xpMax: 50, rep: 1, injuryChance: 0.1, minLevel: 1, minReflex: 3, description: 'Get this package to Japantown. Fast. No questions asked. Payment on delivery.' },
+    { name: 'HIGHWAY CHASE', type: 'RACE', difficulty: 'HARD', difficultyRating: 125, duration: 90000, eddiesMin: 480, eddiesMax: 720, xpMin: 105, xpMax: 165, rep: 7, injuryChance: 0.32, minLevel: 4, minReflex: 9, description: 'Outrun MaxTac on the expressway. Survive and the payout is yours. Get caught and you\'re flatlined.' },
     { name: 'COURIER EXPRESS', type: 'RACE', difficulty: 'MEDIUM', difficultyRating: 50, duration: 60000, eddiesMin: 160, eddiesMax: 280, xpMin: 50, xpMax: 85, rep: 3, injuryChance: 0.15, minLevel: 2, minReflex: 6, description: 'Time-sensitive delivery across the city. Traffic is hell. Don\'t be late.' },
 
     // PROTECTION missions
-    { name: 'VIP ESCORT', type: 'PROTECTION', difficulty: 'HARD', difficultyRating: 120, duration: 90000, eddiesMin: 450, eddiesMax: 750, xpMin: 110, xpMax: 170, rep: 7, injuryChance: 0.3, minLevel: 4, minCool: 8, description: 'Corp exec needs protection through hostile territory. Expect trouble. Keep them breathing, get paid big.' },
+    { name: 'VIP ESCORT', type: 'PROTECTION', difficulty: 'HARD', difficultyRating: 140, duration: 90000, eddiesMin: 450, eddiesMax: 750, xpMin: 110, xpMax: 170, rep: 7, injuryChance: 0.3, minLevel: 4, minCool: 8, description: 'Corp exec needs protection through hostile territory. Expect trouble. Keep them breathing, get paid big.' },
     { name: 'TERRITORY PATROL', type: 'PROTECTION', difficulty: 'MEDIUM', difficultyRating: 50, duration: 60000, eddiesMin: 180, eddiesMax: 350, xpMin: 50, xpMax: 90, rep: 3, injuryChance: 0.2, minLevel: 2, minCool: 5, description: 'Make the rounds. Show the colors. Let rival gangs know this turf is spoken for.' },
-    { name: 'SHOP WATCH', type: 'PROTECTION', difficulty: 'EASY', difficultyRating: 20, duration: 30000, eddiesMin: 70, eddiesMax: 140, xpMin: 20, xpMax: 45, rep: 1, injuryChance: 0.1, minLevel: 1, minCool: 3, description: 'Local shop owner paying for protection. Stand outside, look intimidating. Easy eddies.' },
-    { name: 'CONVOY DEFENSE', type: 'PROTECTION', difficulty: 'EXTREME', difficultyRating: 165, duration: 120000, eddiesMin: 850, eddiesMax: 1400, xpMin: 170, xpMax: 240, rep: 11, injuryChance: 0.48, minLevel: 6, minCool: 11, description: 'Militech convoy moving through Pacifica. Everyone wants a piece. Keep it secure, earn corpo trust.' },
+    { name: 'SHOP WATCH', type: 'PROTECTION', difficulty: 'EASY', difficultyRating: 20, duration: 30000, eddiesMin: 50, eddiesMax: 100, xpMin: 20, xpMax: 45, rep: 1, injuryChance: 0.1, minLevel: 1, minCool: 3, description: 'Local shop owner paying for protection. Stand outside, look intimidating. Easy eddies.' },
+    { name: 'CONVOY DEFENSE', type: 'PROTECTION', difficulty: 'EXTREME', difficultyRating: 210, duration: 120000, eddiesMin: 850, eddiesMax: 1400, xpMin: 170, xpMax: 240, rep: 11, injuryChance: 0.48, minLevel: 6, minCool: 11, description: 'Militech convoy moving through Pacifica. Everyone wants a piece. Keep it secure, earn corpo trust.' },
     { name: 'NIGHTCLUB SECURITY', type: 'PROTECTION', difficulty: 'MEDIUM', difficultyRating: 65, duration: 60000, eddiesMin: 220, eddiesMax: 380, xpMin: 65, xpMax: 105, rep: 4, injuryChance: 0.22, minLevel: 3, minCool: 6, description: 'High-profile club needs muscle tonight. VIPs, drugged-up gonks, and rival gangs. Keep it under control.' },
 
     // BOUNTY HUNT missions
-    { name: 'HIGH VALUE TARGET', type: 'BOUNTY', difficulty: 'EXTREME', difficultyRating: 180, duration: 120000, eddiesMin: 900, eddiesMax: 1600, xpMin: 160, xpMax: 260, rep: 12, injuryChance: 0.55, minLevel: 6, minCool: 10, minReflex: 10, description: 'NCPD\'s most wanted. Heavy chrome, heavier firepower. Bring them in alive... or don\'t. Bonus either way.' },
-    { name: 'GANG LIEUTENANT', type: 'BOUNTY', difficulty: 'HARD', difficultyRating: 130, duration: 90000, eddiesMin: 500, eddiesMax: 850, xpMin: 110, xpMax: 180, rep: 8, injuryChance: 0.4, minLevel: 4, minCool: 7, minReflex: 7, description: 'Rival gang\'s second-in-command has a price on their head. They won\'t go quietly. Expect a fight.' },
+    { name: 'HIGH VALUE TARGET', type: 'BOUNTY', difficulty: 'EXTREME', difficultyRating: 230, duration: 120000, eddiesMin: 900, eddiesMax: 1600, xpMin: 160, xpMax: 260, rep: 12, injuryChance: 0.55, minLevel: 6, minCool: 10, minReflex: 10, description: 'NCPD\'s most wanted. Heavy chrome, heavier firepower. Bring them in alive... or don\'t. Bonus either way.' },
+    { name: 'GANG LIEUTENANT', type: 'BOUNTY', difficulty: 'HARD', difficultyRating: 150, duration: 90000, eddiesMin: 500, eddiesMax: 850, xpMin: 110, xpMax: 180, rep: 8, injuryChance: 0.4, minLevel: 4, minCool: 7, minReflex: 7, description: 'Rival gang\'s second-in-command has a price on their head. They won\'t go quietly. Expect a fight.' },
     { name: 'STREET THUG', type: 'BOUNTY', difficulty: 'MEDIUM', difficultyRating: 55, duration: 60000, eddiesMin: 150, eddiesMax: 300, xpMin: 50, xpMax: 90, rep: 3, injuryChance: 0.25, minLevel: 2, minCool: 5, description: 'Small-time troublemaker causing problems. Track them down, rough them up, collect the bounty.' },
-    { name: 'CYBERPSYCHO HUNT', type: 'BOUNTY', difficulty: 'EXTREME', difficultyRating: 190, duration: 120000, eddiesMin: 1100, eddiesMax: 1800, xpMin: 190, xpMax: 280, rep: 14, injuryChance: 0.6, minLevel: 7, minCool: 12, minReflex: 11, description: 'Cyberpsycho on rampage in Watson. MaxTac will pay premium to stop them. Approach with extreme caution.' },
-    { name: 'SKIP TRACER', type: 'BOUNTY', difficulty: 'EASY', difficultyRating: 28, duration: 30000, eddiesMin: 90, eddiesMax: 170, xpMin: 28, xpMax: 52, rep: 2, injuryChance: 0.13, minLevel: 1, minCool: 4, description: 'Debtor skipped town. Track them down, bring them back. They probably won\'t fight much.' },
+    { name: 'CYBERPSYCHO HUNT', type: 'BOUNTY', difficulty: 'EXTREME', difficultyRating: 250, duration: 120000, eddiesMin: 1100, eddiesMax: 1800, xpMin: 190, xpMax: 280, rep: 14, injuryChance: 0.6, minLevel: 7, minCool: 12, minReflex: 11, description: 'Cyberpsycho on rampage in Watson. MaxTac will pay premium to stop them. Approach with extreme caution.' },
+    { name: 'SKIP TRACER', type: 'BOUNTY', difficulty: 'EASY', difficultyRating: 28, duration: 30000, eddiesMin: 70, eddiesMax: 140, xpMin: 28, xpMax: 52, rep: 2, injuryChance: 0.13, minLevel: 1, minCool: 4, description: 'Debtor skipped town. Track them down, bring them back. They probably won\'t fight much.' },
 
     // SMUGGLING missions
-    { name: 'WEAPON SMUGGLING', type: 'SMUGGLING', difficulty: 'EXTREME', difficultyRating: 160, duration: 120000, eddiesMin: 1000, eddiesMax: 1700, xpMin: 180, xpMax: 280, rep: 11, injuryChance: 0.45, minLevel: 5, minReflex: 10, description: 'Military-grade hardware crossing borders. NCPD, Militech, and rival fixers all want a piece. Get it across or die trying.' },
+    { name: 'WEAPON SMUGGLING', type: 'SMUGGLING', difficulty: 'EXTREME', difficultyRating: 200, duration: 120000, eddiesMin: 1000, eddiesMax: 1700, xpMin: 180, xpMax: 280, rep: 11, injuryChance: 0.45, minLevel: 5, minReflex: 10, description: 'Military-grade hardware crossing borders. NCPD, Militech, and rival fixers all want a piece. Get it across or die trying.' },
     { name: 'CONTRABAND RUN', type: 'SMUGGLING', difficulty: 'MEDIUM', difficultyRating: 70, duration: 60000, eddiesMin: 220, eddiesMax: 420, xpMin: 60, xpMax: 110, rep: 4, injuryChance: 0.2, minLevel: 2, minReflex: 6, description: 'Hot goods need moving. Checkpoints everywhere. Keep your head down and your throttle open.' },
-    { name: 'PACKAGE DELIVERY', type: 'SMUGGLING', difficulty: 'EASY', difficultyRating: 25, duration: 30000, eddiesMin: 90, eddiesMax: 180, xpMin: 30, xpMax: 55, rep: 2, injuryChance: 0.1, minLevel: 1, minReflex: 3, description: 'Unmarked package, no questions. Drop it at the coordinates and forget you ever saw it.' },
-    { name: 'DRUG TRAFFICKING', type: 'SMUGGLING', difficulty: 'HARD', difficultyRating: 125, duration: 90000, eddiesMin: 520, eddiesMax: 820, xpMin: 115, xpMax: 175, rep: 8, injuryChance: 0.38, minLevel: 4, minReflex: 9, description: 'Moving high-grade synthcoke for the Valentinos. NCPD has patrols everywhere. One wrong move and you\'re done.' },
+    { name: 'PACKAGE DELIVERY', type: 'SMUGGLING', difficulty: 'EASY', difficultyRating: 25, duration: 30000, eddiesMin: 70, eddiesMax: 140, xpMin: 30, xpMax: 55, rep: 2, injuryChance: 0.1, minLevel: 1, minReflex: 3, description: 'Unmarked package, no questions. Drop it at the coordinates and forget you ever saw it.' },
+    { name: 'DRUG TRAFFICKING', type: 'SMUGGLING', difficulty: 'HARD', difficultyRating: 145, duration: 90000, eddiesMin: 520, eddiesMax: 820, xpMin: 115, xpMax: 175, rep: 8, injuryChance: 0.38, minLevel: 4, minReflex: 9, description: 'Moving high-grade synthcoke for the Valentinos. NCPD has patrols everywhere. One wrong move and you\'re done.' },
     { name: 'BLACK MARKET TECH', type: 'SMUGGLING', difficulty: 'MEDIUM', difficultyRating: 75, duration: 60000, eddiesMin: 250, eddiesMax: 440, xpMin: 70, xpMax: 115, rep: 5, injuryChance: 0.23, minLevel: 3, minReflex: 7, description: 'Stolen cyberware needs to disappear. Ripterdocs are paying premium. Don\'t let corpo sec catch you.' },
 
     // DEBT COLLECTION missions
-    { name: 'CORP DEBT COLLECTION', type: 'DEBT', difficulty: 'HARD', difficultyRating: 90, duration: 90000, eddiesMin: 550, eddiesMax: 900, xpMin: 120, xpMax: 190, rep: 9, injuryChance: 0.35, minLevel: 4, minCool: 9, description: 'Executive defaulted on a loan. Corp security means business. Collect the eddies or send a message.' },
+    { name: 'CORP DEBT COLLECTION', type: 'DEBT', difficulty: 'HARD', difficultyRating: 110, duration: 90000, eddiesMin: 550, eddiesMax: 900, xpMin: 120, xpMax: 190, rep: 9, injuryChance: 0.35, minLevel: 4, minCool: 9, description: 'Executive defaulted on a loan. Corp security means business. Collect the eddies or send a message.' },
     { name: 'ENFORCER WORK', type: 'DEBT', difficulty: 'MEDIUM', difficultyRating: 50, duration: 60000, eddiesMin: 200, eddiesMax: 380, xpMin: 55, xpMax: 95, rep: 4, injuryChance: 0.25, minLevel: 2, minCool: 6, description: 'Someone owes the wrong people. Make sure they understand the consequences of missed payments.' },
-    { name: 'SMALL COLLECTION', type: 'DEBT', difficulty: 'EASY', difficultyRating: 20, duration: 30000, eddiesMin: 60, eddiesMax: 120, xpMin: 20, xpMax: 40, rep: 1, injuryChance: 0.12, minLevel: 1, minCool: 3, description: 'Local debtor been dodging calls. Show up at their door, collect what\'s owed. Nothing personal, just business.' },
-    { name: 'LOAN SHARK ENFORCING', type: 'DEBT', difficulty: 'HARD', difficultyRating: 115, duration: 90000, eddiesMin: 480, eddiesMax: 780, xpMin: 105, xpMax: 165, rep: 7, injuryChance: 0.36, minLevel: 4, minCool: 8, description: 'High-stakes loan gone bad. Debtor has hired protection. Collect by any means necessary.' },
+    { name: 'SMALL COLLECTION', type: 'DEBT', difficulty: 'EASY', difficultyRating: 20, duration: 30000, eddiesMin: 50, eddiesMax: 100, xpMin: 20, xpMax: 40, rep: 1, injuryChance: 0.12, minLevel: 1, minCool: 3, description: 'Local debtor been dodging calls. Show up at their door, collect what\'s owed. Nothing personal, just business.' },
+    { name: 'LOAN SHARK ENFORCING', type: 'DEBT', difficulty: 'HARD', difficultyRating: 135, duration: 90000, eddiesMin: 480, eddiesMax: 780, xpMin: 105, xpMax: 165, rep: 7, injuryChance: 0.36, minLevel: 4, minCool: 8, description: 'High-stakes loan gone bad. Debtor has hired protection. Collect by any means necessary.' },
     { name: 'REPO JOB', type: 'DEBT', difficulty: 'MEDIUM', difficultyRating: 60, duration: 60000, eddiesMin: 190, eddiesMax: 340, xpMin: 58, xpMax: 98, rep: 4, injuryChance: 0.21, minLevel: 2, minCool: 5, description: 'Repossess illegal cyberware from a defaulted client. They won\'t give it up easily.' }
 ];
 
