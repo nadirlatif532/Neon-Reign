@@ -239,17 +239,18 @@ export class WarfareManager {
                 // Increase Intel
                 territory.intel = Math.min(100, (territory.intel || 0) + 25);
 
-                // NETROOM Upgrade: +10% Intel (More details)
+                // NETROOM Hideout Upgrade: +10% Intel per level
                 const netroom = state.upgrades.find(u => u.id === 'NETROOM');
                 const netroomLevel = netroom ? netroom.level : 0;
                 if (netroomLevel > 0) territory.intel = Math.min(100, territory.intel + (netroomLevel * 10));
 
-                // NETWORK Territory Upgrade: +10% Intel from adjacent territories with NETWORK hubs
-                const adjacentNetworks = state.territories.filter(t =>
-                    t.controlled && t.upgrades.includes('NETWORK')
+                // NETWORK Territory Upgrade: +10% Intel from ANY territory with NETWORK hubs
+                // This means captured territories with NETWORK still provide intel benefits to the new owner
+                const networksCount = state.territories.filter(t =>
+                    t.upgrades.includes('NETWORK')
                 ).length;
-                if (adjacentNetworks > 0) {
-                    territory.intel = Math.min(100, territory.intel + (adjacentNetworks * 10));
+                if (networksCount > 0) {
+                    territory.intel = Math.min(100, territory.intel + (networksCount * 10));
                 }
 
                 let report = `Scouting Complete. Intel: ${territory.intel}%`;
