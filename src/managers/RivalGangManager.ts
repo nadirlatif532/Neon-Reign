@@ -131,23 +131,35 @@ export class RivalGangManager {
 
         if (!attacker) return;
 
+        // Check if attacker is already busy
+        // Note: We need to access WarfareManager here, but it's not injected. 
+        // We can dispatch an event or assume WarfareManager handles the "busy" check in its loop.
+        // However, this method is called by the AI loop in RivalGangManager.
+
         const chance = 0.3 + (attacker.aggression * 0.2);
 
-        if (Math.random() < chance) {
-            target.controlled = false;
-            target.rivalGang = attacker.id;
-            attacker.territories.push(target.id);
-            // Gangs also boost income when they retake it
-            target.income = Math.floor(target.income * 1.1);
-            this.updateGangStrength(attacker);
-            attacker.strength += 20;
+        if (Math.random() < chance && attacker.resources >= 1000) {
+            attacker.resources -= 1000;
 
-            // Trigger store update
-            this.gameStore.setKey('territories', [...state.territories]);
+            // Dispatch event to start operation via WarfareManager (since we can't import it directly due to circular dependency risk if not careful)
+            // Actually, we can just use the global instance if available or pass it.
+            // But wait, WarfareManager imports RivalGangManager. 
+            // So RivalGangManager cannot import WarfareManager.
+            // We'll use a custom event to trigger the start.
+
+            window.dispatchEvent(new CustomEvent('trigger-warfare-op', {
+                detail: {
+                    type: 'ASSAULT',
+                    targetId: target.id,
+                    initiatorId: attacker.id,
+                    power: attacker.strength,
+                    duration: 30000
+                }
+            }));
 
             window.dispatchEvent(new CustomEvent('game-event', {
                 detail: {
-                    message: `⚠ ${attacker.name} RETOOK ${target.name}!`,
+                    message: `⚠ WARNING: ${attacker.name} is ASSAULTING ${target.name}!`,
                     type: 'bad'
                 }
             }));

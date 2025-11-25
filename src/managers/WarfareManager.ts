@@ -51,6 +51,12 @@ export class WarfareManager {
                 this.triggerRandomEvent();
             }
         }, 300000);
+
+        // Listen for AI triggers
+        window.addEventListener('trigger-warfare-op', (e: any) => {
+            const { type, targetId, initiatorId, power, duration } = e.detail;
+            this.startOperation(type, targetId, initiatorId, power, duration);
+        });
     }
 
     getCurrentEvent() {
@@ -275,6 +281,13 @@ export class WarfareManager {
                 // Capture attempt
                 let defensePower = territory.defense * 10 + (territory.controlled ? 500 : 0); // Base defense
 
+                // Check for active DEFEND operation by player
+                const defenseOp = this.operations.find(o => o.targetTerritoryId === territory.id && o.type === 'DEFEND' && o.status === 'IN_PROGRESS');
+                if (defenseOp) {
+                    defensePower += defenseOp.power; // Add defender power
+                    this.notify(`Defenders repelling assault on ${territory.name}!`, 'neutral');
+                }
+
                 // Intel Bonus
                 if ((territory.intel || 0) >= 100) {
                     defensePower *= 0.9; // 10% easier
@@ -303,7 +316,7 @@ export class WarfareManager {
                         territory.controlled = false;
                         territory.rivalGang = op.initiatorGangId;
                         territory.defense = 30;
-                        this.notify(`${territory.name} captured by ${op.initiatorGangId}!`, 'bad');
+                        this.notify(`WARNING: ${territory.name} CAPTURED BY ${op.initiatorGangId}!`, 'bad');
                     }
                 } else {
                     // Fail
@@ -325,6 +338,8 @@ export class WarfareManager {
                                 this.notify(`${injuredMembers.length} members were injured in the failed assault!`, 'bad');
                             }
                         }
+                    } else {
+                        this.notify(`Enemy assault on ${territory.name} REPELLED!`, 'success');
                     }
                 }
                 break;
@@ -334,6 +349,13 @@ export class WarfareManager {
                 if (op.initiatorGangId === 'PLAYER') {
                     this.notify(`${territory.name} defenses reinforced.`, 'success');
                 }
+                break;
+
+            case 'DEFEND':
+                // Defensive operations just add power during assaults (handled above)
+                // But if it completes without an attack, maybe a small stability boost?
+                territory.stability = Math.min(100, territory.stability + 10);
+                this.notify(`${territory.name} secured. Stability increased.`, 'success');
                 break;
         }
 

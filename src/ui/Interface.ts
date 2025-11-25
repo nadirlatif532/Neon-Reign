@@ -1726,6 +1726,9 @@ export class Interface {
                     <button class="op-btn cyber-btn text-sm py-2" data-op="SCOUT">SCOUT (50€)</button>
                     ${isPlayer ? `
                         <button class="op-btn cyber-btn text-sm py-2" data-op="FORTIFY">FORTIFY (200€)</button>
+                        ${warfareManager.getActiveOperations(territory.id).some(op => op.type === 'ASSAULT' && op.initiatorGangId !== 'PLAYER') ?
+          `<button class="op-btn cyber-btn text-sm py-2 bg-red-600 hover:bg-red-500 animate-pulse" data-op="DEFEND">DEFEND! (FREE)</button>` : ''
+        }
                     ` : `
                         <button class="op-btn cyber-btn text-sm py-2" data-op="SABOTAGE">SABOTAGE (300€)</button>
                         <button class="op-btn cyber-btn text-sm py-2" data-op="RAID">RAID (100€)</button>
@@ -1756,7 +1759,7 @@ export class Interface {
     }
   }
 
-  private handleOperationClick(type: 'SCOUT' | 'RAID' | 'ASSAULT' | 'FORTIFY' | 'SABOTAGE', territoryId: number, overlay: HTMLElement) {
+  private handleOperationClick(type: 'SCOUT' | 'RAID' | 'ASSAULT' | 'FORTIFY' | 'SABOTAGE' | 'DEFEND', territoryId: number, overlay: HTMLElement) {
     const state = gameStore.get();
     let cost = 0;
     let duration = 10000;
@@ -1774,6 +1777,7 @@ export class Interface {
       case 'RAID': cost = 100; power = 200; duration = 15000; break; // Reduced cost to 100
       case 'ASSAULT': cost = 1000; power = playerPower; duration = 30000; break; // Dynamic Power
       case 'FORTIFY': cost = 200; duration = 10000; break;
+      case 'DEFEND': cost = 0; power = playerPower; duration = 20000; break; // Free to defend
     }
 
     if (state.eddies >= cost) {
