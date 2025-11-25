@@ -75,6 +75,7 @@ export interface Territory {
     polygonPoints: string; // SVG polygon points (0-100 scale)
     color: string; // Base color for the territory
     intel?: number; // 0-100 (Knowledge about the territory)
+    upgrades: TerritoryUpgradeType[]; // Installed upgrades (limited by slots)
 }
 
 export interface HideoutUpgrade {
@@ -86,6 +87,40 @@ export interface HideoutUpgrade {
     cost: number;
     effect: string;
 }
+
+export type TerritoryUpgradeType = 'MARKET' | 'FORTIFICATION' | 'NETWORK';
+
+export interface TerritoryUpgrade {
+    type: TerritoryUpgradeType;
+    name: string;
+    description: string;
+    cost: number;
+    effect: string;
+}
+
+export const TERRITORY_UPGRADE_CATALOG: Record<TerritoryUpgradeType, TerritoryUpgrade> = {
+    MARKET: {
+        type: 'MARKET',
+        name: 'Market',
+        description: 'Expand trade networks.',
+        cost: 500,
+        effect: '+20% Income'
+    },
+    FORTIFICATION: {
+        type: 'FORTIFICATION',
+        name: 'Fortification',
+        description: 'Military-grade defenses.',
+        cost: 800,
+        effect: '+20 Defense, +10 Stability'
+    },
+    NETWORK: {
+        type: 'NETWORK',
+        name: 'Network Hub',
+        description: 'Intelligence network.',
+        cost: 1000,
+        effect: '+10% Intel on Adjacent Territories'
+    }
+};
 
 export interface GameState {
     eddies: number;
@@ -147,7 +182,8 @@ export const gameStore = map<GameState>({
             coordinates: { x: 45, y: 20 },
             polygonPoints: "25,25 35,15 55,10 75,15 80,25 70,35 60,40 40,40 30,35",
             color: "#FF4444",
-            intel: 0
+            intel: 0,
+            upgrades: []
         },
         {
             id: 2,
@@ -163,7 +199,8 @@ export const gameStore = map<GameState>({
             coordinates: { x: 80, y: 35 },
             polygonPoints: "70,35 80,25 95,30 98,50 90,60 75,55 65,45",
             color: "#FF8800",
-            intel: 0
+            intel: 0,
+            upgrades: []
         },
         {
             id: 3,
@@ -179,7 +216,8 @@ export const gameStore = map<GameState>({
             coordinates: { x: 50, y: 45 },
             polygonPoints: "35,40 45,38 60,40 65,50 55,55 45,55 35,50",
             color: "#00FFFF",
-            intel: 0
+            intel: 0,
+            upgrades: []
         },
         {
             id: 4,
@@ -195,7 +233,8 @@ export const gameStore = map<GameState>({
             coordinates: { x: 45, y: 60 },
             polygonPoints: "30,55 45,55 60,52 65,60 60,70 45,72 35,68 30,60",
             color: "#44FF44",
-            intel: 0
+            intel: 0,
+            upgrades: []
         },
         {
             id: 5,
@@ -211,7 +250,8 @@ export const gameStore = map<GameState>({
             coordinates: { x: 75, y: 70 },
             polygonPoints: "65,60 75,55 90,60 95,80 85,85 70,80 60,70",
             color: "#4444FF",
-            intel: 0
+            intel: 0,
+            upgrades: []
         },
         {
             id: 6,
@@ -227,7 +267,8 @@ export const gameStore = map<GameState>({
             coordinates: { x: 30, y: 75 },
             polygonPoints: "20,65 35,68 45,72 55,75 50,88 35,90 20,85 15,75",
             color: "#AA00FF",
-            intel: 0
+            intel: 0,
+            upgrades: []
         },
         {
             id: 7,
@@ -243,12 +284,13 @@ export const gameStore = map<GameState>({
             coordinates: { x: 50, y: 95 },
             polygonPoints: "5,85 20,85 35,90 50,88 65,85 80,85 95,80 98,100 2,100",
             color: "#FFD700",
-            intel: 100
+            intel: 100,
+            upgrades: []
         }
     ],
     upgrades: [
         { id: 'ARMORY', name: 'Armory', level: 0, maxLevel: 3, description: 'Better gear for your crew.', cost: 1000, effect: '+5% Mission Success Chance per level.' },
-        { id: 'MEDBAY', name: 'Medbay', level: 0, maxLevel: 3, description: 'Advanced medical facilities.', cost: 800, effect: '-10% Injury Recovery Time per level.' },
+        { id: 'MEDBAY', name: 'Medbay', level: 0, maxLevel: 3, description: 'Advanced medical facilities.', cost: 800, effect: '-10% Healing Cost Reduction per level.' },
         { id: 'GARAGE', name: 'Garage', level: 0, maxLevel: 3, description: 'Tuned up rides.', cost: 1200, effect: '-10% Mission Duration per level.' },
         { id: 'NETROOM', name: 'Netroom', level: 0, maxLevel: 3, description: 'Secure network access.', cost: 1500, effect: '+10% Intel from Scouting.' }
     ],
@@ -772,6 +814,43 @@ export const damageMember = (memberId: number, amount: number) => {
     }
 };
 
+// ==================== TERRITORY UPGRADES ====================
+
+export const purchaseTerritoryUpgrade = (territoryId: number, upgradeType: TerritoryUpgradeType): { success: boolean; message: string } => {
+    const state = gameStore.get();
+    const territory = state.territories.find(t => t.id === territoryId);
+
+    if (!territory) return { success: false, message: 'Territory not found' };
+    if (!territory.controlled) return { success: false, message: 'Must control territory first' };
+    if (territory.upgrades.length >= territory.slots) return { success: false, message: 'No slots available' };
+    if (territory.upgrades.includes(upgradeType)) return { success: false, message: 'Upgrade already installed' };
+
+    const upgrade = TERRITORY_UPGRADE_CATALOG[upgradeType];
+    if (state.eddies < upgrade.cost) return { success: false, message: 'Insufficient funds' };
+
+    // Purchase upgrade
+    addEddies(-upgrade.cost);
+    territory.upgrades.push(upgradeType);
+
+    // Apply immediate effects
+    switch (upgradeType) {
+        case 'MARKET':
+            // +20% Income (applied via calculation in income processing)
+            break;
+        case 'FORTIFICATION':
+            // +20 Defense, +10 Stability (immediate)
+            territory.defense = Math.min(100, territory.defense + 20);
+            territory.stability = Math.min(100, territory.stability + 10);
+            break;
+        case 'NETWORK':
+            // +10% Intel on Adjacent Territories (applied during scouting)
+            break;
+    }
+
+    gameStore.setKey('territories', [...state.territories]);
+    return { success: true, message: `${upgrade.name} built successfully!` };
+};
+
 // ==================== SAVE SYSTEM ====================
 
 /**
@@ -827,7 +906,9 @@ export const resetGameState = () => {
             slots: 1,
             coordinates: { x: 45, y: 20 },
             polygonPoints: "25,25 35,15 55,10 75,15 80,25 70,35 60,40 40,40 30,35",
-            color: "#FF4444"
+            color: "#FF4444",
+            intel: 0,
+            upgrades: []
         },
         {
             id: 2,
@@ -842,7 +923,9 @@ export const resetGameState = () => {
             slots: 2,
             coordinates: { x: 80, y: 35 },
             polygonPoints: "70,35 80,25 95,30 98,50 90,60 75,55 65,45",
-            color: "#FF8800"
+            color: "#FF8800",
+            intel: 0,
+            upgrades: []
         },
         {
             id: 3,
@@ -857,7 +940,9 @@ export const resetGameState = () => {
             slots: 3,
             coordinates: { x: 50, y: 45 },
             polygonPoints: "35,40 45,38 60,40 65,50 55,55 45,55 35,50",
-            color: "#00FFFF"
+            color: "#00FFFF",
+            intel: 0,
+            upgrades: []
         },
         {
             id: 4,
@@ -872,7 +957,9 @@ export const resetGameState = () => {
             slots: 2,
             coordinates: { x: 45, y: 60 },
             polygonPoints: "30,55 45,55 60,52 65,60 60,70 45,72 35,68 30,60",
-            color: "#44FF44"
+            color: "#44FF44",
+            intel: 0,
+            upgrades: []
         },
         {
             id: 5,
@@ -887,7 +974,9 @@ export const resetGameState = () => {
             slots: 1,
             coordinates: { x: 75, y: 70 },
             polygonPoints: "65,60 75,55 90,60 95,80 85,85 70,80 60,70",
-            color: "#4444FF"
+            color: "#4444FF",
+            intel: 0,
+            upgrades: []
         },
         {
             id: 6,
@@ -902,7 +991,9 @@ export const resetGameState = () => {
             slots: 1,
             coordinates: { x: 30, y: 75 },
             polygonPoints: "20,65 35,68 45,72 55,75 50,88 35,90 20,85 15,75",
-            color: "#AA00FF"
+            color: "#AA00FF",
+            intel: 0,
+            upgrades: []
         },
         {
             id: 7,
@@ -917,12 +1008,15 @@ export const resetGameState = () => {
             slots: 3,
             coordinates: { x: 50, y: 95 },
             polygonPoints: "5,85 20,85 35,90 50,88 65,85 80,85 95,80 98,100 2,100",
-            color: "#FFD700"
+            color: "#FFD700",
+            intel: 100,
+            upgrades: []
         }
+
     ]);
     gameStore.setKey('upgrades', [
         { id: 'ARMORY', name: 'Armory', level: 0, maxLevel: 3, description: 'Better gear for your crew.', cost: 1000, effect: '+5% Mission Success Chance per level.' },
-        { id: 'MEDBAY', name: 'Medbay', level: 0, maxLevel: 3, description: 'Advanced medical facilities.', cost: 800, effect: '-10% Injury Recovery Time per level.' },
+        { id: 'MEDBAY', name: 'Medbay', level: 0, maxLevel: 3, description: 'Advanced medical facilities.', cost: 800, effect: '-10% Healing Cost Reduction per level.' },
         { id: 'GARAGE', name: 'Garage', level: 0, maxLevel: 3, description: 'Tuned up rides.', cost: 1200, effect: '-10% Mission Duration per level.' },
         { id: 'NETROOM', name: 'Netroom', level: 0, maxLevel: 3, description: 'Secure network access.', cost: 1500, effect: '+10% Intel from Scouting.' }
     ]);

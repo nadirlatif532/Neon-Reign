@@ -176,7 +176,13 @@ export class WarfareManager {
         controlledTerritories.forEach(t => {
             // Stability affects income (100% stability = 100% income, 0% stability = 50% income)
             const stabilityMod = 0.5 + (t.stability / 200);
-            const income = Math.floor(t.income * stabilityMod);
+            let income = Math.floor(t.income * stabilityMod);
+
+            // MARKET Upgrade: +20% Income
+            if (t.upgrades.includes('MARKET')) {
+                income = Math.floor(income * 1.2);
+            }
+
             totalIncome += income;
         });
 
@@ -237,6 +243,14 @@ export class WarfareManager {
                 const netroom = state.upgrades.find(u => u.id === 'NETROOM');
                 const netroomLevel = netroom ? netroom.level : 0;
                 if (netroomLevel > 0) territory.intel = Math.min(100, territory.intel + (netroomLevel * 10));
+
+                // NETWORK Territory Upgrade: +10% Intel from adjacent territories with NETWORK hubs
+                const adjacentNetworks = state.territories.filter(t =>
+                    t.controlled && t.upgrades.includes('NETWORK')
+                ).length;
+                if (adjacentNetworks > 0) {
+                    territory.intel = Math.min(100, territory.intel + (adjacentNetworks * 10));
+                }
 
                 let report = `Scouting Complete. Intel: ${territory.intel}%`;
 

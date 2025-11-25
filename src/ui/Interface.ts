@@ -9,7 +9,9 @@ import {
   startMission,
   refreshMissions,
   Mission,
-  RIDER_CLASSES
+  RIDER_CLASSES,
+  TERRITORY_UPGRADE_CATALOG,
+  purchaseTerritoryUpgrade
 } from '../state/GameStore';
 import { rivalGangManager } from '../managers/RivalGangManager';
 import { MapInterface } from './MapInterface';
@@ -1656,6 +1658,20 @@ export class Interface {
         this.handleOperationClick(opType as any, territoryId, overlay);
       }
 
+      // Handle territory upgrade purchases
+      if (target.classList.contains('upgrade-territory-btn') || target.closest('.upgrade-territory-btn')) {
+        const btn = target.classList.contains('upgrade-territory-btn') ? target : target.closest('.upgrade-territory-btn') as HTMLElement;
+        const upgradeType = btn?.dataset.upgrade;
+        if (upgradeType) {
+          const result = purchaseTerritoryUpgrade(territoryId, upgradeType as any);
+          if (result.success) {
+            audioManager.playPurchase();
+            this.showToast(result.message, 'success');
+          } else {
+            this.showToast(result.message, 'error');
+          }
+        }
+      }
 
     });
   }
@@ -1736,6 +1752,48 @@ export class Interface {
                     `}
                 </div>
             </div>
+            
+            ${isPlayer ? `
+            <!-- District Upgrades Section -->
+            <div class="border-t border-gray-700 pt-4 mt-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-cp-yellow font-cyber text-lg">DISTRICT UPGRADES</h3>
+                    <div class="text-xs text-gray-400">SLOTS: <span class="text-white">${territory.upgrades.length}/${territory.slots}</span></div>
+                </div>
+                
+                <!-- Installed Upgrades -->
+                ${territory.upgrades.length > 0 ? `
+                    <div class="mb-3">
+                        <div class="text-xs text-gray-500 mb-2">INSTALLED</div>
+                        <div class="flex flex-wrap gap-2">
+                            ${territory.upgrades.map(u => `
+                                <div class="bg-cp-yellow/20 border border-cp-yellow px-3 py-1 text-xs font-cyber text-cp-yellow">
+                                    ${TERRITORY_UPGRADE_CATALOG[u].name.toUpperCase()}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <!-- Available Upgrades -->
+                ${territory.upgrades.length < territory.slots ? `
+                    <div class="grid grid-cols-1 gap-2">
+                        ${Object.values(TERRITORY_UPGRADE_CATALOG).filter(u => !territory.upgrades.includes(u.type)).map(upgrade => `
+                            <button class="upgrade-territory-btn bg-black/40 border border-gray-600 hover:border-cp-yellow p-3 text-left transition-colors group" data-upgrade="${upgrade.type}">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="font-cyber text-white group-hover:text-cp-yellow">${upgrade.name}</span>
+                                    <span class="text-cp-yellow font-bold">${upgrade.cost}€</span>
+                                </div>
+                                <div class="text-xs text-gray-400 mb-1">${upgrade.description}</div>
+                                <div class="text-xs text-cp-cyan">${upgrade.effect}</div>
+                            </button>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <div class="text-center text-gray-500 text-sm py-2">ALL SLOTS FILLED</div>
+                `}
+            </div>
+            ` : ''}
             
             <div id="active-ops" class="mt-4"></div>
         </div>
