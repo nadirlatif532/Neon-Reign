@@ -168,152 +168,135 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="bg-black/40 p-3 border border-cp-yellow/30">
                             <h4 class="text-cp-yellow font-bold font-cyber mb-2">LOCATIONS</h4>
-                            <ul class="text-sm text-gray-400 space-y-1">
-                                <li><span class="text-cp-yellow">HIDEOUT (Yellow):</span> Missions &amp; Roster</li>
-                                <li><span class="text-cp-red">AFTERLIFE (Red):</span> Territory &amp; Diplomacy</li>
-                                <li><span class="text-cp-cyan">RIPPERDOC (Cyan):</span> Recruit, Heal &amp; Upgrade</li>
-                            </ul>
-                        </div>
-                        <div class="bg-black/40 p-3 border border-cp-cyan/30">
-                            <h4 class="text-cp-cyan font-bold font-cyber mb-2">RESOURCES</h4>
-                            <ul class="text-sm text-gray-400 space-y-1">
-                                <li><span class="text-white">€ EDDIES:</span> Cash for hiring &amp; upgrades</li>
-                                <li><span class="text-white">XP:</span> Level up your members</li>
-                                <li><span class="text-white">REP:</span> Global reputation</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div class="bg-black/40 p-4 border-l-4 border-cp-red mt-4">
-                        <h4 class="text-cp-red font-bold font-cyber mb-2">GAMEPLAY LOOP</h4>
-                        <ol class="text-sm text-gray-300 list-decimal pl-4 space-y-1">
-                            <li>Visit <span class="text-cp-cyan">Ripperdoc</span> to recruit a member.</li>
                             <li>Go to <span class="text-cp-yellow">Hideout</span> to start missions.</li>
                             <li>Earn Eddies &amp; Rep to expand your gang.</li>
                             <li>Manage <span class="text-cp-red">Territory</span> &amp; <span
                                     class="text-cp-red">Diplomacy</span> at the Afterlife.</li>
-                        </ol>
-                    </div>
+                            </ol>
+                        </div>
 
-                    <button id="tutorial-ok-btn" class="cyber-btn w-full mt-6 text-xl">I'M READY</button>
+                        <button id="tutorial-ok-btn" class="cyber-btn w-full mt-6 text-xl">I'M READY</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Settings Overlay -->
-    <div id="settings-overlay" class="tutorial-hidden">
-        <div id="settings-panel" class="bg-black/95 border-2 border-cp-cyan p-6 rounded-lg max-w-md w-full shadow-2xl">
-            <div class="tutorial-header">
-                <h2 class="text-cp-yellow font-cyber text-2xl">SETTINGS</h2>
-                <button id="settings-close-btn"
-                    class="text-4xl text-cp-cyan hover:text-white transition-colors">&times;</button>
-            </div>
-            <div class="space-y-6 mt-6">
-                <!-- Music Control -->
-                <div class="bg-black/40 p-4 border border-cp-cyan/30 rounded">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="text-cp-cyan font-cyber text-lg">MUSIC</h3>
-                        <label class="relative inline-block w-14 h-8">
-                            <input type="checkbox" id="music-toggle" class="sr-only peer" checked>
-                            <div
-                                class="w-full h-full bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-cp-cyan">
-                            </div>
-                        </label>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="text-white text-sm">VOL:</span>
-                        <input type="range" id="music-volume" min="0" max="100" value="15"
-                            class="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-cyan">
-                        <span id="music-volume-value" class="text-cp-cyan font-mono text-sm w-12 text-right">15%</span>
-                    </div>
+        <!-- Settings Overlay -->
+        <div id="settings-overlay" class="tutorial-hidden">
+            <div id="settings-panel"
+                class="bg-black/95 border-2 border-cp-cyan p-6 rounded-lg max-w-md w-full shadow-2xl">
+                <div class="tutorial-header">
+                    <h2 class="text-cp-yellow font-cyber text-2xl">SETTINGS</h2>
+                    <button id="settings-close-btn"
+                        class="text-4xl text-cp-cyan hover:text-white transition-colors">&times;</button>
                 </div>
-
-                <!-- SFX Control -->
-                <div class="bg-black/40 p-4 border border-cp-yellow/30 rounded">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="text-cp-yellow font-cyber text-lg">SFX</h3>
-                        <label class="relative inline-block w-14 h-8">
-                            <input type="checkbox" id="sfx-toggle" class="sr-only peer" checked>
-                            <div
-                                class="w-full h-full bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-cp-yellow">
-                            </div>
-                        </label>
+                <div class="space-y-6 mt-6">
+                    <!-- Music Control -->
+                    <div class="bg-black/40 p-4 border border-cp-cyan/30 rounded">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-cp-cyan font-cyber text-lg">MUSIC</h3>
+                            <label class="relative inline-block w-14 h-8">
+                                <input type="checkbox" id="music-toggle" class="sr-only peer" checked>
+                                <div
+                                    class="w-full h-full bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-cp-cyan">
+                                </div>
+                            </label>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-white text-sm">VOL:</span>
+                            <input type="range" id="music-volume" min="0" max="100" value="15"
+                                class="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-cyan">
+                            <span id="music-volume-value"
+                                class="text-cp-cyan font-mono text-sm w-12 text-right">15%</span>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <span class="text-white text-sm">VOL:</span>
-                        <input type="range" id="sfx-volume" min="0" max="100" value="40"
-                            class="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-yellow">
-                        <span id="sfx-volume-value" class="text-cp-yellow font-mono text-sm w-12 text-right">40%</span>
-                    </div>
-                </div>
 
-                <!-- Reset Progress -->
-                <div class="bg-black/40 p-4 border border-cp-red/30 rounded">
-                    <h3 class="text-cp-red font-cyber text-lg mb-3">DANGER ZONE</h3>
-                    <button id="reset-progress-btn"
-                        class="w-full bg-cp-red/20 hover:bg-cp-red/40 border-2 border-cp-red text-cp-red font-cyber py-3 px-4 rounded-lg transition-all duration-200 uppercase tracking-wider">
-                        RESET PROGRESS
-                    </button>
-                    <p class="text-gray-500 text-xs mt-2 text-center">This will delete all your game progress!</p>
+                    <!-- SFX Control -->
+                    <div class="bg-black/40 p-4 border border-cp-yellow/30 rounded">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-cp-yellow font-cyber text-lg">SFX</h3>
+                            <label class="relative inline-block w-14 h-8">
+                                <input type="checkbox" id="sfx-toggle" class="sr-only peer" checked>
+                                <div
+                                    class="w-full h-full bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-1 after:left-1 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-cp-yellow">
+                                </div>
+                            </label>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-white text-sm">VOL:</span>
+                            <input type="range" id="sfx-volume" min="0" max="100" value="40"
+                                class="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-yellow">
+                            <span id="sfx-volume-value"
+                                class="text-cp-yellow font-mono text-sm w-12 text-right">40%</span>
+                        </div>
+                    </div>
+
+                    <!-- Reset Progress -->
+                    <div class="bg-black/40 p-4 border border-cp-red/30 rounded">
+                        <h3 class="text-cp-red font-cyber text-lg mb-3">DANGER ZONE</h3>
+                        <button id="reset-progress-btn"
+                            class="w-full bg-cp-red/20 hover:bg-cp-red/40 border-2 border-cp-red text-cp-red font-cyber py-3 px-4 rounded-lg transition-all duration-200 uppercase tracking-wider">
+                            RESET PROGRESS
+                        </button>
+                        <p class="text-gray-500 text-xs mt-2 text-center">This will delete all your game progress!</p>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Tutorial Control Script -->
-    <script>
-        // Simple tutorial control with localStorage persistence
-        window.showTutorial = function () {
-            const overlay = document.getElementById('tutorial-overlay');
-            if (overlay) {
-                overlay.classList.remove('tutorial-hidden');
-            }
-        };
-
-        window.hideTutorial = function () {
-            const overlay = document.getElementById('tutorial-overlay');
-            if (overlay) {
-                overlay.classList.add('tutorial-hidden');
-                localStorage.setItem('tutorial-seen', 'true');
-
-                // Trigger gang name modal after tutorial closes (only on first run)
-                const gangNameSet = localStorage.getItem('gang-name-set');
-                if (!gangNameSet) {
-                    setTimeout(() => {
-                        window.dispatchEvent(new CustomEvent('show-gang-name-modal'));
-                        localStorage.setItem('gang-name-set', 'true');
-                    }, 500);
+        <!-- Tutorial Control Script -->
+        <script>
+            // Simple tutorial control with localStorage persistence
+            window.showTutorial = function () {
+                const overlay = document.getElementById('tutorial-overlay');
+                if (overlay) {
+                    overlay.classList.remove('tutorial-hidden');
                 }
-            }
-        };
+            };
 
-        // Auto-show tutorial on first load
-        window.addEventListener('DOMContentLoaded', function () {
-            const tutorialSeen = localStorage.getItem('tutorial-seen');
-            if (!tutorialSeen) {
-                setTimeout(() => window.showTutorial(), 1000);
-            }
-        });
+            window.hideTutorial = function () {
+                const overlay = document.getElementById('tutorial-overlay');
+                if (overlay) {
+                    overlay.classList.add('tutorial-hidden');
+                    localStorage.setItem('tutorial-seen', 'true');
 
-        // Wire up close buttons
-        document.addEventListener('DOMContentLoaded', function () {
-            document.getElementById('tutorial-close-btn')?.addEventListener('click', window.hideTutorial);
-            document.getElementById('tutorial-ok-btn')?.addEventListener('click', window.hideTutorial);
-        });
+                    // Trigger gang name modal after tutorial closes (only on first run)
+                    const gangNameSet = localStorage.getItem('gang-name-set');
+                    if (!gangNameSet) {
+                        setTimeout(() => {
+                            window.dispatchEvent(new CustomEvent('show-gang-name-modal'));
+                            localStorage.setItem('gang-name-set', 'true');
+                        }, 500);
+                    }
+                }
+            };
 
-        // Show game elements after external CSS is loaded
-        window.addEventListener('load', function () {
-            // Make game elements visible after full load
-            const gameElements = ['app', 'ui-layer', 'footer-log', 'tutorial-overlay', 'settings-overlay'];
-            gameElements.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.style.visibility = 'visible';
+            // Auto-show tutorial on first load
+            window.addEventListener('DOMContentLoaded', function () {
+                const tutorialSeen = localStorage.getItem('tutorial-seen');
+                if (!tutorialSeen) {
+                    setTimeout(() => window.showTutorial(), 1000);
+                }
             });
-        });
-    </script>
 
-    <script type="module" src="/src/main.ts"></script>
+            // Wire up close buttons
+            document.addEventListener('DOMContentLoaded', function () {
+                document.getElementById('tutorial-close-btn')?.addEventListener('click', window.hideTutorial);
+                document.getElementById('tutorial-ok-btn')?.addEventListener('click', window.hideTutorial);
+            });
+
+            // Show game elements after external CSS is loaded
+            window.addEventListener('load', function () {
+                // Make game elements visible after full load
+                const gameElements = ['app', 'ui-layer', 'footer-log', 'tutorial-overlay', 'settings-overlay'];
+                gameElements.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.visibility = 'visible';
+                });
+            });
+        </script>
+
+        <script type="module" src="/src/main.ts"></script>
 </body>
 
 </html>

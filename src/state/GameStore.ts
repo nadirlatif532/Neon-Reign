@@ -278,8 +278,20 @@ export const setGangName = (name: string) => {
 };
 
 export const recruitMember = (name: string, description: string, art: string = '', riderClass?: RiderClass) => {
+    const state = gameStore.get();
     const classes = Object.keys(RIDER_CLASSES) as RiderClass[];
     const randomClass = classes[Math.floor(Math.random() * classes.length)];
+
+    // REP-based Quality Scaling
+    // Rep 0-20: Level 1, Stats 3-7
+    // Rep 20-50: Level 1-2, Stats 4-9
+    // Rep 50-100: Level 2-3, Stats 5-11
+    // Rep 100+: Level 3-4, Stats 6-13
+
+    const repBonus = Math.min(state.rep / 25, 4); // 0 to 4 bonus
+    const baseStatMin = 3 + Math.floor(repBonus);
+    const baseStatMax = 7 + Math.floor(repBonus * 1.5);
+    const startingLevel = 1 + Math.floor(repBonus * 0.75);
 
     const member: Member = {
         id: Date.now(),
@@ -288,15 +300,15 @@ export const recruitMember = (name: string, description: string, art: string = '
         description: description || 'A fresh recruit ready for action.',
         art,
         status: 'IDLE',
-        level: 1,
+        level: startingLevel,
         xp: 0,
-        xpToNext: 100,
-        health: 100,
-        maxHealth: 100,
+        xpToNext: 100 * Math.pow(1.5, startingLevel - 1),
+        health: 100 + (startingLevel - 1) * 10,
+        maxHealth: 100 + (startingLevel - 1) * 10,
         injured: false,
         stats: {
-            cool: Math.floor(Math.random() * 5) + 3,
-            reflex: Math.floor(Math.random() * 5) + 3
+            cool: Math.floor(Math.random() * (baseStatMax - baseStatMin + 1)) + baseStatMin,
+            reflex: Math.floor(Math.random() * (baseStatMax - baseStatMin + 1)) + baseStatMin
         },
         currentMission: null
     };
@@ -333,12 +345,15 @@ export const upgradeMember = (memberId: number, upgradeType: 'cool' | 'reflex' |
 
     if (!member) return false;
 
+    // REP-based Street Cred Discount: Max 25% discount at 100+ rep
+    const repDiscount = Math.min(state.rep / 400, 0.25); // 0% to 25% discount
+
     let cost = 0;
     let success = false;
 
     switch (upgradeType) {
         case 'cool':
-            cost = member.stats.cool * 100;
+            cost = Math.floor(member.stats.cool * 100 * (1 - repDiscount));
             if (state.eddies >= cost) {
                 addEddies(-cost);
                 member.stats.cool += 2;
@@ -346,7 +361,7 @@ export const upgradeMember = (memberId: number, upgradeType: 'cool' | 'reflex' |
             }
             break;
         case 'reflex':
-            cost = member.stats.reflex * 100;
+            cost = Math.floor(member.stats.reflex * 100 * (1 - repDiscount));
             if (state.eddies >= cost) {
                 addEddies(-cost);
                 member.stats.reflex += 2;
@@ -354,7 +369,7 @@ export const upgradeMember = (memberId: number, upgradeType: 'cool' | 'reflex' |
             }
             break;
         case 'health':
-            cost = 500;
+            cost = Math.floor(500 * (1 - repDiscount));
             if (state.eddies >= cost) {
                 addEddies(-cost);
                 member.maxHealth += 20;
@@ -487,6 +502,10 @@ export const completeMission = (activeMissionId: number) => {
         if (members.some(m => m.class === 'FIXER')) {
             eddiesReward = Math.floor(eddiesReward * 1.15);
         }
+
+        // REP-based Eddies Bonus: Max +20% at 100+ rep (Fixers pay more for famous crews)
+        const repBonus = Math.min(state.rep / 500, 0.2); // 0% to 20% bonus
+        eddiesReward = Math.floor(eddiesReward * (1 + repBonus));
 
         addEddies(eddiesReward);
         addRep(repReward);
