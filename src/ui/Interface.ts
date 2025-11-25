@@ -175,16 +175,55 @@ export class Interface {
       else if (op.type === 'SCOUT') color = 'text-cp-cyan';
       else if (op.type === 'RAID') color = 'text-orange-500';
 
+      // Resolve Initiator Name & Color
+      let initiatorName = 'UNKNOWN';
+      let initiatorColor = '#ffffff';
+      if (op.initiatorGangId === 'PLAYER') {
+        initiatorName = state.gangName;
+        initiatorColor = '#00F0FF'; // Cyan
+      } else {
+        const gang = rivalGangManager.getGangById(op.initiatorGangId);
+        if (gang) {
+          initiatorName = gang.name;
+          initiatorColor = gang.color;
+        } else {
+          initiatorName = op.initiatorGangId;
+        }
+      }
+
+      // Resolve Receiver Name & Color
+      let receiverName = 'NEUTRAL';
+      let receiverColor = '#888888'; // Gray
+      if (territory) {
+        if (territory.controlled) {
+          receiverName = state.gangName;
+          receiverColor = '#00F0FF';
+        } else if (territory.rivalGang) {
+          const gang = rivalGangManager.getGangById(territory.rivalGang);
+          if (gang) {
+            receiverName = gang.name;
+            receiverColor = gang.color;
+          } else {
+            receiverName = territory.rivalGang;
+          }
+        }
+      }
+
       return `
-            <div class="bg-black/90 border border-cp-cyan p-2 text-xs font-cyber shadow-[0_0_10px_rgba(0,0,0,0.5)] animate-fadeIn">
+            <div class="bg-black/90 border border-cp-cyan p-2 text-xs font-cyber shadow-[0_0_10px_rgba(0,0,0,0.5)] animate-fadeIn min-w-[200px]">
                 <div class="flex justify-between mb-1">
-                    <span class="${color} font-bold">${op.type}</span>
-                    <span class="text-cp-yellow">${timeLeft}s</span>
+                    <span class="${color} font-bold text-sm">${op.type}</span>
+                    <span class="text-cp-yellow font-mono">${timeLeft}s</span>
                 </div>
-                <div class="w-full bg-gray-800 h-1 mb-1">
+                <div class="w-full bg-gray-800 h-1 mb-2">
                     <div class="h-full bg-cp-cyan transition-all duration-1000" style="width: ${progress}%"></div>
                 </div>
-                <div class="text-[10px] text-gray-400 truncate">${territoryName}</div>
+                <div class="text-[10px] text-gray-400 mb-1 font-bold uppercase tracking-wider">${territoryName}</div>
+                <div class="text-[10px] font-bold flex items-center gap-1 flex-wrap bg-black/50 p-1 rounded border border-gray-800">
+                    <span style="color: ${initiatorColor}" class="drop-shadow-[0_0_2px_${initiatorColor}]">${initiatorName}</span>
+                    <span class="text-gray-500">➜</span>
+                    <span style="color: ${receiverColor}" class="drop-shadow-[0_0_2px_${receiverColor}]">${receiverName}</span>
+                </div>
             </div>
         `;
     }).join('');
