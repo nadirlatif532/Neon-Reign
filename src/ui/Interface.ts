@@ -1744,40 +1744,7 @@ export class Interface {
     }
   }
 
-  private openTerritoryTutorial() {
-    const overlay = this.createOverlay();
-    const modal = document.createElement('div');
-    modal.className = 'bg-black/95 border border-cp-cyan p-8 max-w-[500px] text-white font-cyber relative animate-modalSlideIn shadow-[0_0_50px_rgba(0,240,255,0.2)] pointer-events-auto';
 
-    modal.innerHTML = `
-        <h2 class="text-2xl text-cp-cyan font-bold mb-4 border-b border-gray-700 pb-2">TERRITORY GUIDE</h2>
-        <div class="space-y-4 text-sm text-gray-300">
-            <div>
-                <strong class="text-white">INCOME:</strong> Controlled territories generate eddies every 60 seconds. High <span class="text-cp-yellow">STABILITY</span> ensures full payment.
-            </div>
-            <div>
-                <strong class="text-white">DEFENSE:</strong> Determines how hard it is to capture. Lower it by <span class="text-red-400">RAIDING</span> before you Assault.
-            </div>
-            <div>
-                <strong class="text-white">HEAT:</strong> High heat attracts Police Raids. It decays over time, but aggressive actions raise it.
-            </div>
-            <div class="border-t border-gray-700 pt-2 mt-2">
-                <strong class="text-cp-cyan">OPERATIONS:</strong>
-                <ul class="list-disc pl-5 mt-1 space-y-1">
-                    <li><span class="text-white">SCOUT:</span> Reveal details & gain Intel.</li>
-                    <li><span class="text-white">RAID:</span> Steal cash & lower Defense.</li>
-                    <li><span class="text-white">ASSAULT:</span> Capture the territory. Power scales with Rep & Armory.</li>
-                    <li><span class="text-white">FORTIFY:</span> Repair Defense.</li>
-                </ul>
-            </div>
-        </div>
-        <button class="mt-6 w-full bg-cp-cyan text-black font-bold py-2 hover:bg-white transition-colors">GOT IT</button>
-    `;
-
-    modal.querySelector('button')?.addEventListener('click', () => overlay.remove());
-    overlay.appendChild(modal);
-    this.modalContainer.appendChild(overlay);
-  }
 
   private openHideoutModal() {
     const state = gameStore.get();
