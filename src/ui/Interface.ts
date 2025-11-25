@@ -1028,75 +1028,96 @@ export class Interface {
     });
 
     const modal = document.createElement('div');
-    modal.className = 'bg-cp-bg border-[3px] border-cp-cyan shadow-[0_0_40px_rgba(0,240,255,0.5)] w-[90%] max-w-[1000px] h-[90vh] flex flex-col animate-modalSlideIn pointer-events-auto';
+    modal.className = 'bg-cp-bg border-[3px] border-cp-cyan shadow-[0_0_40px_rgba(0,240,255,0.5)] w-[95%] max-w-[1100px] h-[90vh] flex flex-col animate-modalSlideIn pointer-events-auto';
 
     modal.innerHTML = `
-      <div class="bg-cp-cyan/10 border-b-2 border-cp-cyan p-5 flex justify-between items-center shrink-0">
-        <h2 class="text-cp-cyan m-0 text-3xl drop-shadow-[0_0_10px_var(--cp-cyan)] font-cyber font-bold">${mission.name}</h2>
-        <button id="close-detail" class="bg-transparent border-2 border-cp-red text-cp-red text-3xl w-10 h-10 cursor-pointer transition-all duration-300 hover:bg-cp-red hover:text-white hover:rotate-90 flex items-center justify-center font-bold">&times;</button>
+      <div class="bg-cp-cyan/10 border-b-2 border-cp-cyan p-4 flex justify-between items-center shrink-0">
+        <h2 class="text-cp-cyan m-0 text-2xl drop-shadow-[0_0_10px_var(--cp-cyan)] font-cyber font-bold uppercase">${mission.name}</h2>
+        <button id="close-detail" class="bg-transparent border-2 border-cp-red text-cp-red text-2xl w-8 h-8 cursor-pointer transition-all duration-300 hover:bg-cp-red hover:text-white hover:rotate-90 flex items-center justify-center font-bold">&times;</button>
       </div>
       
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 overflow-y-auto flex-1">
+      <div class="flex flex-col md:flex-row gap-4 p-4 overflow-hidden flex-1">
         <!-- Left Column: Details & Stats -->
-        <!-- Left Column: Details & Stats -->
-        <div class="border-r border-cp-cyan pr-5 flex flex-col gap-2 overflow-hidden">
+        <div class="flex-1 flex flex-col gap-3 overflow-y-auto pr-2 min-w-0">
           <div class="shrink-0">
-            <div class="flex justify-between items-center mb-1">
-              <span class="inline-block px-3 py-1 text-lg font-bold rounded bg-cp-black border border-cp-yellow text-cp-yellow">
+            <div class="flex justify-between items-center mb-2">
+              <span class="inline-block px-2 py-1 text-sm font-bold rounded bg-cp-black border border-cp-yellow text-cp-yellow">
                 ${mission.difficulty}
               </span>
-              <div class="text-cp-yellow text-base font-cyber">${mission.type}</div>
+              <div class="text-cp-yellow text-sm font-cyber">${mission.type}</div>
             </div>
             
-            <div class="text-white text-sm leading-snug mb-2 p-2 bg-black/30 border-l-[3px] border-cp-yellow italic font-cyber">
+            <div class="text-white text-sm leading-snug mb-3 p-3 bg-black/30 border-l-[3px] border-cp-yellow italic font-cyber">
               "${mission.description}"
             </div>
           </div>
 
           <!-- Mission Stats Grid -->
           <div class="grid grid-cols-2 gap-2 shrink-0">
-            <div class="bg-cp-cyan/5 border border-cp-cyan/30 p-2 flex justify-between items-center">
-              <div class="text-cp-cyan text-xs font-bold">REWARD</div>
-              <div class="text-white text-base font-cyber">${mission.eddiesMin}-${mission.eddiesMax}€</div>
+            <div class="bg-cp-cyan/5 border border-cp-cyan/30 p-2 flex flex-col justify-center items-center gap-1">
+              <div class="text-cp-cyan text-[10px] font-bold tracking-wider">REWARD</div>
+              <div class="text-white text-base font-cyber font-bold text-shadow-neon">${mission.eddiesMin}-${mission.eddiesMax}€</div>
             </div>
-            <div class="bg-cp-cyan/5 border border-cp-cyan/30 p-2 flex justify-between items-center">
-              <div class="text-cp-cyan text-xs font-bold">XP</div>
-              <div class="text-white text-base font-cyber">${mission.xpMin}-${mission.xpMax}</div>
+            <div class="bg-cp-cyan/5 border border-cp-cyan/30 p-2 flex flex-col justify-center items-center gap-1">
+              <div class="text-cp-cyan text-[10px] font-bold tracking-wider">XP</div>
+              <div class="text-white text-base font-cyber font-bold text-shadow-neon">${mission.xpMin}-${mission.xpMax}</div>
             </div>
-            <div class="bg-cp-cyan/5 border border-cp-cyan/30 p-2 flex justify-between items-center">
-              <div class="text-cp-cyan text-xs font-bold">TIME</div>
-              <div class="text-white text-base font-cyber">${mission.duration / 1000}s</div>
+            <div class="bg-cp-cyan/5 border border-cp-cyan/30 p-2 flex flex-col justify-center items-center gap-1">
+              <div class="text-cp-cyan text-[10px] font-bold tracking-wider">TIME</div>
+              <div class="text-white text-base font-cyber font-bold text-shadow-neon">${mission.duration / 1000}s</div>
             </div>
-            <div class="bg-cp-cyan/5 border border-cp-cyan/30 p-2 flex justify-between items-center">
-              <div class="text-cp-cyan text-xs font-bold">RISK</div>
-              <div class="text-white text-base font-cyber">${Math.round(mission.injuryChance * 100)}%</div>
+            <div class="bg-cp-cyan/5 border border-cp-cyan/30 p-2 flex flex-col justify-center items-center gap-1">
+              <div class="text-cp-cyan text-[10px] font-bold tracking-wider">RISK</div>
+              <div class="text-white text-base font-cyber font-bold text-shadow-neon">${Math.round(mission.injuryChance * 100)}%</div>
             </div>
           </div>
 
-          <!-- Team Stats & Probability -->
-          <div class="flex justify-between items-center mb-2">
-            <h3 class="text-cp-yellow m-0 font-cyber text-lg font-bold">SELECT CREW</h3>
-            <span class="text-[10px] text-gray-400">MAX 3</span>
+          <!-- Prediction Stats -->
+          <div class="bg-black/40 border border-gray-700 p-3 mt-1 shrink-0">
+             <div class="flex justify-between items-center mb-1">
+                <span class="text-gray-400 text-xs">TEAM POWER</span>
+                <span id="team-power" class="text-cp-cyan font-bold">0</span>
+             </div>
+             <div class="flex justify-between items-center mb-1">
+                <span class="text-gray-400 text-xs">WIN CHANCE</span>
+                <span id="win-chance" class="text-white font-bold">0%</span>
+             </div>
+             <div class="w-full h-2 bg-gray-800 mt-1 mb-2">
+                <div id="win-bar" class="h-full bg-cp-cyan transition-all duration-300" style="width: 0%"></div>
+             </div>
+             <div class="flex justify-between items-center">
+                <span class="text-gray-400 text-xs">INJURY RISK</span>
+                <span id="injury-risk" class="text-cp-red font-bold">--</span>
+             </div>
           </div>
           
-          <div id="crew-list" class="flex-1 overflow-y-auto max-h-[300px] space-y-2 pr-1">
+          <div id="active-passives" class="flex flex-col gap-1 mt-1 text-xs"></div>
+        </div>
+
+        <!-- Right Column: Crew Selection -->
+        <div class="flex-1 flex flex-col h-full overflow-hidden md:border-l md:border-cp-cyan/30 md:pl-4 min-w-0">
+          <div class="flex justify-between items-center mb-2 shrink-0">
+            <h3 class="text-cp-yellow m-0 font-cyber text-base font-bold">SELECT CREW</h3>
+            <span class="text-xs text-gray-400 bg-black/50 px-2 py-1 rounded border border-gray-700">MAX 3</span>
+          </div>
+          
+          <div id="crew-list" class="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
             <!-- Crew members go here -->
           </div>
         </div>
       </div>
 
-      <!-- Biker Animation Section -->
-      <div class="w-full h-[100px] bg-black/30 border-t-2 border-cp-yellow relative overflow-hidden shrink-0">
-         <div id="biker-anim" class="absolute left-[-150px] bottom-[10px] w-[150px] h-[80px]">
-           <img src="assets/biker.png" class="w-full h-full object-contain drop-shadow-[0_0_5px_var(--cp-cyan)]" />
-         </div>
-      </div>
-
-      <div class="border-t-2 border-cp-cyan p-5 flex justify-between items-center bg-black/30 shrink-0">
-        <div class="text-cp-yellow text-xl font-bold font-cyber">
+      <div class="border-t-2 border-cp-cyan p-4 flex justify-between items-center bg-black/30 shrink-0 relative overflow-hidden">
+        <div class="text-cp-yellow text-lg font-bold font-cyber z-10">
           SELECTED: <span id="selected-count">0</span>/3
         </div>
-        <button id="send-crew-btn" class="cyber-btn px-10 py-4 text-xl disabled:opacity-50 disabled:cursor-not-allowed">
+        
+        <!-- Biker Animation (Hidden by default) -->
+        <div id="mission-biker" class="absolute left-0 bottom-0 h-full w-[120px] pointer-events-none opacity-0 z-0 transform -translate-x-full">
+           <img src="assets/biker.png" class="w-full h-full object-contain drop-shadow-[0_0_5px_var(--cp-cyan)]" />
+        </div>
+
+        <button id="send-crew-btn" class="cyber-btn px-8 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed z-10">
           SEND CREW
         </button>
       </div>
@@ -1108,7 +1129,7 @@ export class Interface {
     let selectedMemberIds: number[] = [];
     const sendBtn = modal.querySelector('#send-crew-btn') as HTMLButtonElement;
     const selectedCountEl = modal.querySelector('#selected-count')!;
-    const bikerAnim = modal.querySelector('#biker-anim') as HTMLElement;
+    const bikerAnim = modal.querySelector('#mission-biker') as HTMLElement;
 
     // Stats Elements
     const teamPowerEl = modal.querySelector('#team-power')!;
@@ -1128,6 +1149,8 @@ export class Interface {
         winChanceEl.textContent = '0%';
         winBarEl.style.width = '0%';
         injuryRiskEl.textContent = '--';
+        const passiveContainer = modal.querySelector('#active-passives');
+        if (passiveContainer) passiveContainer.innerHTML = '';
         return;
       }
 
@@ -1161,7 +1184,7 @@ export class Interface {
       // Show active passives
       const passivesList = selectedMembers.map(m => {
         const info = RIDER_CLASSES[m.class];
-        return `<div class="text-[10px] text-cp-cyan">• ${m.name} (${info.name}): ${info.passive}</div>`;
+        return `<div class="text-[10px] text-cp-cyan truncate">• ${m.name}: ${info.passive}</div>`;
       }).join('');
 
       const passiveContainer = modal.querySelector('#active-passives');
@@ -1174,11 +1197,11 @@ export class Interface {
     const availableMembers = state.members.filter(m => m.status === 'IDLE' && !m.injured);
 
     if (availableMembers.length === 0) {
-      crewList.innerHTML = '<div class="text-cp-red text-center p-10 font-cyber text-xl">NO AVAILABLE MEMBERS</div>';
+      crewList.innerHTML = '<div class="text-cp-red text-center p-5 font-cyber text-sm">NO AVAILABLE MEMBERS</div>';
     } else {
       availableMembers.forEach(member => {
         const el = document.createElement('div');
-        el.className = 'flex items-center gap-4 p-3 bg-black/40 border-2 border-[#555] cursor-pointer transition-all duration-300 hover:bg-cp-cyan/10 hover:translate-x-1 hover:shadow-[0_0_15px_rgba(0,240,255,0.3)]';
+        el.className = 'flex items-center gap-3 p-2 bg-black/40 border border-[#555] cursor-pointer transition-all duration-300 hover:bg-cp-cyan/10 hover:translate-x-1 hover:shadow-[0_0_15px_rgba(0,240,255,0.3)]';
 
         // Check requirements
         const levelOk = member.level >= mission.minLevel;
@@ -1192,17 +1215,17 @@ export class Interface {
           el.classList.add('opacity-50', 'cursor-not-allowed', 'border-red-900');
         }
         el.innerHTML = `
-          <div class="flex-1">
+          <div class="flex-1 min-w-0">
             <div class="flex justify-between items-center mb-1">
-              <div class="font-bold text-white font-cyber">${member.name}</div>
-              <div class="text-xs text-cp-yellow font-cyber">LVL ${member.level}</div>
+              <div class="font-bold text-white font-cyber text-sm truncate">${member.name}</div>
+              <div class="text-[10px] text-cp-yellow font-cyber whitespace-nowrap">LVL ${member.level}</div>
             </div>
-            <div class="flex gap-3 text-xs text-gray-400 font-mono">
+            <div class="flex gap-2 text-[10px] text-gray-400 font-mono">
               <span>COOL: <span class="${member.stats.cool >= (mission.minCool || 0) ? 'text-cp-cyan' : 'text-red-500'}">${member.stats.cool}</span></span>
               <span>REF: <span class="${member.stats.reflex >= (mission.minReflex || 0) ? 'text-cp-cyan' : 'text-red-500'}">${member.stats.reflex}</span></span>
             </div>
           </div>
-          <div class="w-6 h-6 border-2 border-cp-cyan flex items-center justify-center text-sm check-box transition-all"></div>
+          <div class="w-5 h-5 border border-cp-cyan flex items-center justify-center text-xs check-box transition-all shrink-0"></div>
         `;
 
         if (qualified) {
@@ -1246,12 +1269,19 @@ export class Interface {
     sendBtn.addEventListener('click', () => {
       audioManager.playClick();
       if (selectedMemberIds.length > 0) {
-        // Play animation
-        bikerAnim.style.animation = 'bikerSlide 1.5s linear forwards';
-
         // Disable button
         sendBtn.disabled = true;
         sendBtn.textContent = 'SENDING...';
+
+        // Trigger Animation
+        bikerAnim.style.opacity = '1';
+        bikerAnim.animate([
+          { transform: 'translateX(-100%)' },
+          { transform: 'translateX(1000px)' }
+        ], {
+          duration: 1500,
+          easing: 'ease-in'
+        });
 
         // Wait a bit for effect
         setTimeout(() => {
@@ -1266,6 +1296,7 @@ export class Interface {
             this.showToast(result.reason || 'FAILED', 'error');
             sendBtn.disabled = false;
             sendBtn.textContent = 'SEND CREW';
+            bikerAnim.style.opacity = '0'; // Reset animation visibility
           }
         }, 1000);
       }
