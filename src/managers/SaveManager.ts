@@ -131,6 +131,15 @@ export class SaveManager {
     }
 
     /**
+     * Prevent any further saves (used during import/reload)
+     */
+    preventSave(): void {
+        this.isResetting = true;
+        this.stopAutoSave();
+        console.log('[SaveManager] Saving disabled (preventSave called)');
+    }
+
+    /**
      * Get save timestamp
      */
     getSaveTimestamp(): number | null {

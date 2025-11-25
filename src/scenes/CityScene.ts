@@ -156,10 +156,10 @@ export class CityScene extends Phaser.Scene {
             this.bgVideo.setDepth(-1);
             this.bgImage.setDepth(0);
 
-            // Scale video
+            // Scale video to fit the entire city (contain)
             const scaleX = this.scale.width / this.bgVideo.width;
             const scaleY = this.scale.height / this.bgVideo.height;
-            const videoScale = Math.min(scaleX, scaleY) * 0.4;
+            const videoScale = Math.min(scaleX, scaleY) * 0.28;
             this.bgVideo.setScale(videoScale);
 
             // Start the video with 0 alpha

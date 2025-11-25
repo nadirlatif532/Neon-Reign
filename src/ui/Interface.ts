@@ -112,25 +112,27 @@ export class Interface {
   private setupHUD() {
     this.hudContainer.className = 'absolute top-0 left-0 w-full pointer-events-none flex flex-col z-50';
     this.hudContainer.innerHTML = `
-      <header class="flex justify-between items-center border-b-2 border-cp-yellow pb-2 mb-0 bg-cp-black/70 -skew-x-[10deg] border-l-[10px] border-l-cp-cyan pointer-events-auto px-4 py-2">
-        <div id="gang-name-header" class="text-2xl font-black text-cp-cyan ml-5 skew-x-[10deg] drop-shadow-[2px_2px_var(--cp-red)] font-cyber">
+      <header class="flex flex-col md:flex-row justify-between items-start md:items-center border-b-2 border-cp-yellow pb-2 mb-0 bg-cp-black/70 -skew-x-[10deg] border-l-[10px] border-l-cp-cyan pointer-events-auto px-4 py-2 transition-all duration-300">
+        <div id="gang-name-header" class="text-xl md:text-2xl font-black text-cp-cyan ml-2 md:ml-5 skew-x-[10deg] drop-shadow-[2px_2px_var(--cp-red)] font-cyber mb-2 md:mb-0">
           ${gameStore.get().gangName.toUpperCase()}
         </div>
-        <div id="resources" class="flex gap-10 mr-5 skew-x-[10deg]">
-          <div class="text-xl font-bold text-cp-yellow uppercase flex items-center font-cyber">
+        <div id="resources" class="flex flex-wrap gap-3 md:gap-10 mr-2 md:mr-5 skew-x-[10deg] items-center">
+          <div class="text-sm md:text-xl font-bold text-cp-yellow uppercase flex items-center font-cyber">
             EDDIES: <span id="hud-eddies" class="text-white ml-2">0</span>
           </div>
-          <div class="text-xl font-bold text-cp-yellow uppercase flex items-center font-cyber">
+          <div class="text-sm md:text-xl font-bold text-cp-yellow uppercase flex items-center font-cyber">
             REP: <span id="hud-rep" class="text-white ml-2">0</span>
           </div>
-          <div class="text-xl font-bold text-cp-yellow uppercase flex items-center font-cyber">
+          <div class="text-sm md:text-xl font-bold text-cp-yellow uppercase flex items-center font-cyber">
             MEMBERS: <span id="hud-members" class="text-white ml-2">0</span>
           </div>
-          <button id="settings-btn" class="cyber-btn text-xs ml-2" title="Settings">⚙</button>
-          <button id="tutorial-btn" class="cyber-btn text-xs" title="Show Tutorial">?</button>
+          <div class="flex gap-2 ml-auto md:ml-0">
+            <button id="settings-btn" class="cyber-btn text-xs" title="Settings">⚙</button>
+            <button id="tutorial-btn" class="cyber-btn text-xs" title="Show Tutorial">?</button>
+          </div>
         </div>
       </header>
-      <div id="active-ops-panel" class="absolute top-20 right-4 w-64 flex flex-col gap-2 pointer-events-auto"></div>
+      <div id="active-ops-panel" class="absolute top-20 right-4 w-64 flex flex-col gap-2 pointer-events-auto transition-all duration-300"></div>
     `;
 
     // Start Active Ops Ticker
@@ -210,7 +212,7 @@ export class Interface {
       }
 
       return `
-            <div class="bg-black/90 border border-cp-cyan p-2 text-xs font-cyber shadow-[0_0_10px_rgba(0,0,0,0.5)] animate-fadeIn min-w-[240px]">
+            <div class="bg-black/90 border border-cp-cyan p-2 text-xs font-cyber shadow-[0_0_10px_rgba(0,0,0,0.5)] animate-fadeIn w-full md:min-w-[240px]">
                 <div class="flex justify-between mb-1">
                     <span class="${color} font-bold text-sm">${op.type}</span>
                     <span class="text-cp-yellow font-mono">${timeLeft}s</span>
@@ -299,6 +301,53 @@ export class Interface {
         audioManager.setSfxEnabled(enabled);
         if (enabled) audioManager.playClick();
         this.saveSettings();
+      });
+
+      // Export Save
+      document.getElementById('export-save-btn')?.addEventListener('click', () => {
+        audioManager.playClick();
+        const data = saveManager.exportSaveData();
+        if (data) {
+          const blob = new Blob([data], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `bikergang_save_${Date.now()}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          this.showToast('SAVE EXPORTED', 'success');
+        } else {
+          this.showToast('NO SAVE DATA', 'error');
+        }
+      });
+
+      // Import Save
+      const importInput = document.getElementById('import-save-input') as HTMLInputElement;
+      document.getElementById('import-save-btn')?.addEventListener('click', () => {
+        audioManager.playClick();
+        importInput?.click();
+      });
+
+      importInput?.addEventListener('change', (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const content = e.target?.result as string;
+            if (saveManager.importSaveData(content)) {
+              saveManager.preventSave(); // Prevent auto-save on reload
+              this.showToast('SAVE IMPORTED - RELOADING', 'success');
+              setTimeout(() => window.location.reload(), 1000);
+            } else {
+              this.showToast('IMPORT FAILED', 'error');
+            }
+          };
+          reader.readAsText(file);
+        }
+        // Reset input so same file can be selected again if needed
+        importInput.value = '';
       });
 
       // Reset progress button - shows confirmation modal on click
@@ -478,7 +527,107 @@ export class Interface {
           "MAXTAC DEPLOYED TO CITY CENTER",
           "REMEMBER: STYLE OVER SUBSTANCE",
           "NETWATCH IS WATCHING YOU",
-          "DELAMAIN: EXCUSE ME, BEEP BEEP"
+          "DELAMAIN: EXCUSE ME, BEEP BEEP",
+          "NIGHT CITY WEATHER: ACID RAIN ADVISORY IN EFFECT",
+          "ARASAKA STOCK DIPS AFTER EXECUTIVE KIDNAPPING RUMORS",
+          "MILITECH RECRUITMENT DRIVE: SIGN YOUR LIFE AWAY TODAY",
+          "TRAUMA TEAM PLATINUM: BECAUSE YOU'RE WORTH SAVING",
+          "SYNTH-MEAT PRICES SOAR: REAL BEEF NOW A LUXURY",
+          "NCPD REMINDER: LOITERING IS PUNISHABLE BY DEATH",
+          "CYBERPSYCHOSIS SYMPTOMS? REPORT YOUR NEIGHBOR NOW",
+          "KANG TAO: SMART WEAPONS FOR SMART OPERATORS",
+          "BIOTECHNICA PROMISES NEW ALGAE FLAVORS BY 2078",
+          "PETROCHEM: FUELING THE FUTURE, BURNING THE PAST",
+          "ZETA TECH: UPGRADE YOUR MIND, UPGRADE YOUR LIFE",
+          "KIROSHI OPTICS: SEE THE TRUTH, OR WHAT WE SHOW YOU",
+          "BUDGET ARMS: RELIABLE ENOUGH FOR THE STREETS",
+          "MIDNIGHT LADY: FOR WHEN YOU NEED TO FEEL SOMETHING",
+          "NICOLA: TASTE THE LOVE, IGNORE THE CHEMICALS",
+          "SPUNKY MONKEY: 100% ARTIFICIAL, 100% DELICIOUS",
+          "ALL FOODS: WE FEED THE CITY, ONE WAY OR ANOTHER",
+          "ORBITAL AIR: ESCAPE TO THE CRYSTAL PALACE TODAY",
+          "NETWATCH ALERT: ROGUE AI DETECTED IN SUB-NET 7",
+          "VOODOO BOYS TAGS FOUND IN PACIFICA DATA FORTRESS",
+          "MAELSTROM RITUAL DISTURBS NORTHSIDE RESIDENTS",
+          "TYGER CLAWS SPOTTED NEAR KABUKI MARKET",
+          "6TH STREET PATROLS INCREASE IN SANTO DOMINGO",
+          "VALENTINOS HOSTING LOWRIDER PARADE IN HEYWOOD",
+          "ANIMALS GANG TAKING OVER GIM IN PACIFICA",
+          "SCAVENGERS HARVESTING IMPLANTS: WATCH YOUR BACK",
+          "WRAITHS RAIDING CONVOYS IN THE BADLANDS",
+          "ALDECALDOS SEEKING SMUGGLING CONTRACTS",
+          "MOXES DECLARE LIZZIE'S BAR A SAFE ZONE",
+          "FIXER ALERT: REGINA JONES LOOKING FOR MERCS",
+          "WAKAKO OKADA: DISCRETION GUARANTEED",
+          "DAKOTA SMITH: BADLANDS JOBS AVAILABLE",
+          "EL CAPITAN: RIDES FOR SALE, NO QUESTIONS ASKED",
+          "MR. HANDS: PACIFICA GIGS, HIGH RISK HIGH REWARD",
+          "DINO DINOVIC: CITY CENTER CONTRACTS OPEN",
+          "PADRE: HEYWOOD NEEDS CLEANING UP",
+          "ROGUE AMENDIARES: THE QUEEN OF THE AFTERLIFE",
+          "AFTERLIFE DRINKS: TRY THE JOHNNY SILVERHAND",
+          "CLOUDS: FULFILL YOUR FANTASIES, FOR A PRICE",
+          "JIG-JIG STREET: ANYTHING YOU WANT, WE HAVE IT",
+          "TOTENTANZ: DANCE UNTIL YOU DROP, LITERALLY",
+          "EMBERS: EXCLUSIVE DINING FOR THE ELITE",
+          "KONPEKI PLAZA: LUXURY HOTELS FOR CORPORATE ROYALTY",
+          "NO-TELL MOTEL: WE DON'T ASK, YOU DON'T TELL",
+          "DICKY TWISTER: NIGHT CITY'S PREMIER CLUB",
+          "RIOT CLUB: ELECTRONIC BEATS AND NEON LIGHTS",
+          "7TH HELL: MERCENARY HANGOUT, WATCH YOUR STEP",
+          "COYOTE COJO: HEYWOOD'S FAVORITE WATERING HOLE",
+          "RED DIRT BAR: LIVE MUSIC AND CHEAP BOOZE",
+          "SPACEPORT LAUNCH SCHEDULE DELAYED DUE TO WEATHER",
+          "AV CRASH IN CORPO PLAZA: TRAFFIC DIVERTED",
+          "COMBAT CAB: ARMORED TRANSPORT FOR THE PARANOID",
+          "DELAMAIN AI GLITCH: REFUNDS PROCESSING SLOWLY",
+          "NCART DELAYS: TRACK MAINTENANCE IN JAPANTOWN",
+          "METRO SYSTEM OVERCROWDED: WATCH FOR PICKPOCKETS",
+          "HIGHWAY 101 BLOCKED BY GANG SHOOTOUT",
+          "BADLANDS DUST STORM WARNING: VISIBILITY ZERO",
+          "TOXIC SPILL IN WATSON: EVACUATION ORDERED",
+          "POWER OUTAGE IN SANTO DOMINGO: RIPPERDOCS OFFLINE",
+          "NETRUNNER FRYING BRAINS IN KABUKI: STAY OFFLINE",
+          "BLACKWALL BREACH RUMORS: NETWATCH DENIES ALL",
+          "RELIC PROTOTYPE STOLEN: ARASAKA LOCKDOWN",
+          "SOULKILLER MYTH: CONSPIRACY OR REALITY?",
+          "ALT CUNNINGHAM: GHOST IN THE MACHINE?",
+          "ADAM SMASHER: THE BOOGEYMAN OF NIGHT CITY",
+          "MORGAN BLACKHAND: MISSING OR DEAD?",
+          "SABURO ARASAKA: EMPEROR OF THE CORPORATE WORLD",
+          "YORINOBU ARASAKA: REBELLIOUS SON OR NEW LEADER?",
+          "HANAKO ARASAKA: THE PORCELAIN PRINCESS",
+          "TAKEMURA: LOYALTY ABOVE ALL ELSE",
+          "JUDY ALVAREZ: BD WIZARD OF LIZZIE'S BAR",
+          "PANAM PALMER: NOMAD QUEEN OF THE BADLANDS",
+          "RIVER WARD: NCPD DETECTIVE ON THE EDGE",
+          "KERRY EURODYNE: ROCKERBOY LEGEND RETURNS",
+          "US CRACKS: LASERPOP SENSATION TOUR DATES",
+          "LIZZY WIZZY: CHROME POP STAR SCANDAL",
+          "PERALEZ CAMPAIGN: DREAMING OF A BETTER CITY",
+          "MAYOR RHYNE: PUPPET OR POLITICIAN?",
+          "HOLT ADMINISTRATION: CORPORATE INTERESTS FIRST",
+          "NIGHT CORP: SHADOWY MOVES IN THE DARK",
+          "DATA TERM HACKED: FREE EDDIES FOR EVERYONE (FAKE)",
+          "SMART LINK FIRMWARE UPDATE: BUG FIXES INCLUDED",
+          "MANTIS BLADES RECALL: MALFUNCTIONING ROTORS",
+          "GORILLA ARMS: FEEL THE POWER, BREAK THE BONES",
+          "MONOWIRE: SLICE THROUGH ANYTHING, SILENTLY",
+          "PROJECTILE LAUNCH SYSTEM: EXPLOSIVE SURPRISE",
+          "SANDEVISTAN: MOVE FASTER THAN THE EYE CAN SEE",
+          "BERSERK OS: UNLEASH YOUR INNER BEAST",
+          "CYBERDECK UPGRADES: MORE RAM, MORE HACKS",
+          "QUICKHACKS ON SALE: SHORT CIRCUIT YOUR ENEMIES",
+          "BREACH PROTOCOL: CRACK THE CODE, STEAL THE DATA",
+          "PING: KNOW YOUR SURROUNDINGS, SPOT THE THREATS",
+          "CONTAGION: SPREAD THE VIRUS, WATCH THEM FALL",
+          "OVERHEAT: BURN THEM FROM THE INSIDE OUT",
+          "SYNAPSE BURNOUT: FRY THEIR NEURAL NETWORK",
+          "SYSTEM RESET: NON-LETHAL TAKEDOWN GUARANTEED",
+          "SUICIDE HACK: MAKE THEM DO THE DIRTY WORK",
+          "CYBERPSYCHOSIS HACK: TURN THEM AGAINST EACH OTHER",
+          "DETONATE GRENADE: EXPLOSIVE FINALE FOR EVERYONE",
+          "REMEMBER: NO FUTURE, BUT WE SURVIVE TODAY"
         ];
 
         const dynamicTexts = [
@@ -1117,7 +1266,7 @@ export class Interface {
            <img src="assets/biker.png" class="w-full h-full object-contain drop-shadow-[0_0_5px_var(--cp-cyan)]" />
         </div>
 
-        <button id="send-crew-btn" class="cyber-btn px-8 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed z-10">
+        <button id="send-crew-btn" class="cyber-btn px-4 py-2 text-base md:px-8 md:py-3 md:text-lg disabled:opacity-50 disabled:cursor-not-allowed z-10">
           SEND CREW
         </button>
       </div>
