@@ -2204,7 +2204,7 @@ export class Interface {
     header.className = 'flex justify-between items-center mb-4 border-b border-gray-700 pb-2';
     header.innerHTML = `
         <h3 class="text-cp-yellow font-cyber text-2xl uppercase tracking-wider">RIVAL GANGS</h3>
-        <button id="diplomacy-help-btn" class="bg-transparent border border-gray-500 text-gray-400 w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 hover:text-white transition-colors">?</button>
+        <button id="diplomacy-help-btn" class="bg-black/90 border-2 border-cp-cyan text-cp-cyan w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl hover:bg-cp-cyan hover:text-black transition-colors shadow-[0_0_15px_rgba(0,240,255,0.5)]">?</button>
     `;
     container.appendChild(header);
 
