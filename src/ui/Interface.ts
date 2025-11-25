@@ -210,7 +210,7 @@ export class Interface {
       }
 
       return `
-            <div class="bg-black/90 border border-cp-cyan p-2 text-xs font-cyber shadow-[0_0_10px_rgba(0,0,0,0.5)] animate-fadeIn min-w-[200px]">
+            <div class="bg-black/90 border border-cp-cyan p-2 text-xs font-cyber shadow-[0_0_10px_rgba(0,0,0,0.5)] animate-fadeIn min-w-[240px]">
                 <div class="flex justify-between mb-1">
                     <span class="${color} font-bold text-sm">${op.type}</span>
                     <span class="text-cp-yellow font-mono">${timeLeft}s</span>
@@ -218,11 +218,13 @@ export class Interface {
                 <div class="w-full bg-gray-800 h-1 mb-2">
                     <div class="h-full bg-cp-cyan transition-all duration-1000" style="width: ${progress}%"></div>
                 </div>
-                <div class="text-[10px] text-gray-400 mb-1 font-bold uppercase tracking-wider">${territoryName}</div>
-                <div class="text-[10px] font-bold flex items-center gap-1 flex-wrap bg-black/50 p-1 rounded border border-gray-800">
-                    <span style="color: ${initiatorColor}" class="drop-shadow-[0_0_2px_${initiatorColor}]">${initiatorName}</span>
-                    <span class="text-gray-500">➜</span>
-                    <span style="color: ${receiverColor}" class="drop-shadow-[0_0_2px_${receiverColor}]">${receiverName}</span>
+                <div class="flex justify-between items-center gap-2">
+                    <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider whitespace-nowrap">${territoryName}</div>
+                    <div class="text-[9px] font-bold flex items-center gap-1 bg-black/50 px-1 rounded border border-gray-800">
+                        <span style="color: ${initiatorColor}" class="drop-shadow-[0_0_2px_${initiatorColor}]">${initiatorName}</span>
+                        <span class="text-gray-500">➜</span>
+                        <span style="color: ${receiverColor}" class="drop-shadow-[0_0_2px_${receiverColor}]">${receiverName}</span>
+                    </div>
                 </div>
             </div>
         `;

@@ -51,6 +51,16 @@ export class EncounterManager {
             { x: 80, y: 60, width: 25, height: 25 }, // Ripperdoc (increased from 15x15)
         ];
 
+        // Add active encounters to exclusion zones to prevent overlap
+        state.activeEncounters.forEach(e => {
+            exclusionZones.push({
+                x: e.x,
+                y: e.y,
+                width: 12, // Increased to 12% to account for rotated diamond corners
+                height: 12
+            });
+        });
+
         // Try to find a valid spawn position (with collision detection)
         let x: number = 0;
         let y: number = 0;
