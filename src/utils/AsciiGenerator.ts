@@ -110,4 +110,35 @@ export class AsciiGenerator {
 
         return { art, name, description };
     }
+
+    static getGangLogo(name: string): string {
+        // Simple ASCII logos based on gang name or random
+        const logos: Record<string, string> = {
+            'IRON SKULLS': `
+   .---.
+  /  _  \\
+ |  (o)  |
+  \\  ^  /
+   '---'
+            `,
+            'NEON DRAGONS': `
+    /\\
+   ( o.o)
+    > ^ <
+   /  -  \\
+            `,
+            'CYBER PUNKS': `
+   [###]
+   |o o|
+   | - |
+   \\___/
+            `
+        };
+
+        return logos[name] || `
+   /---\\
+   | ? |
+   \\---/
+        `;
+    }
 }

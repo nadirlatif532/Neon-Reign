@@ -1,5 +1,6 @@
 import { map } from 'nanostores';
-import { RivalGangManager } from '@/managers/RivalGangManager';
+import { rivalGangManager } from '@/managers/RivalGangManager';
+
 
 export type RiderClass = 'SOLO' | 'NETRUNNER' | 'TECHIE' | 'NOMAD' | 'FIXER';
 
@@ -61,19 +62,43 @@ export interface ActiveMission {
 export interface Territory {
     id: number;
     name: string;
+    district: string;
+    description: string;
     controlled: boolean;
     income: number;
     rivalGang?: string | null;
+    defense: number; // 0-100
+    stability: number; // 0-100
+    heat: number; // 0-100 (New: Police attention)
+    slots: number; // 0-3 for upgrades
+    coordinates: { x: number; y: number }; // Map position %
+    polygonPoints: string; // SVG polygon points (0-100 scale)
+    color: string; // Base color for the territory
+    intel?: number; // 0-100 (Knowledge about the territory)
+}
+
+export interface HideoutUpgrade {
+    id: 'ARMORY' | 'MEDBAY' | 'GARAGE' | 'NETROOM';
+    name: string;
+    level: number;
+    maxLevel: number;
+    description: string;
+    cost: number;
+    effect: string;
 }
 
 export interface GameState {
     eddies: number;
     rep: number;
-    gangName: string;
+    day: number;
     members: Member[];
-    territories: Territory[];
-    availableMissions: Mission[];
+    missions: Mission[];
     activeMissions: ActiveMission[];
+    notifications: string[];
+    gangName: string;
+    territories: Territory[];
+    upgrades: HideoutUpgrade[];
+    availableMissions: Mission[];
     activeEncounters: { id: string; encounterId: string; x: number; y: number; expiresAt: number }[];
     loadingProgress: number;
 }
@@ -81,7 +106,7 @@ export interface GameState {
 export const gameStore = map<GameState>({
     eddies: 1000,
     rep: 10,
-    gangName: "V's Gang",
+    day: 1,
     members: [
         {
             id: 1,
@@ -103,16 +128,124 @@ export const gameStore = map<GameState>({
             currentMission: null
         }
     ],
+    missions: [],
+    activeMissions: [],
+    notifications: [],
+    gangName: "V's Gang",
     territories: [
-        { id: 1, name: 'WATSON', controlled: false, income: 50 },
-        { id: 2, name: 'WESTBROOK', controlled: false, income: 75 },
-        { id: 3, name: 'CITY CENTER', controlled: false, income: 100 },
-        { id: 4, name: 'SANTO DOMINGO', controlled: false, income: 60 },
-        { id: 5, name: 'PACIFICA', controlled: false, income: 80 },
-        { id: 6, name: 'THE GARAGE', controlled: true, income: 25 }
+        {
+            id: 1,
+            name: 'WATSON',
+            district: 'WATSON',
+            description: 'Industrial district and home to Maelstrom.',
+            controlled: false,
+            income: 50,
+            defense: 40,
+            stability: 50,
+            heat: 10,
+            slots: 1,
+            coordinates: { x: 45, y: 20 },
+            polygonPoints: "25,25 35,15 55,10 75,15 80,25 70,35 60,40 40,40 30,35",
+            color: "#FF4444"
+        },
+        {
+            id: 2,
+            name: 'WESTBROOK',
+            district: 'WESTBROOK',
+            description: 'Wealthy residential area. Tyger Claws turf.',
+            controlled: false,
+            income: 80,
+            defense: 60,
+            stability: 70,
+            heat: 20,
+            slots: 2,
+            coordinates: { x: 80, y: 35 },
+            polygonPoints: "70,35 80,25 95,30 98,50 90,60 75,55 65,45",
+            color: "#FF8800"
+        },
+        {
+            id: 3,
+            name: 'CITY CENTER',
+            district: 'CITY CENTER',
+            description: 'Corporate heart of Night City. Heavily guarded.',
+            controlled: false,
+            income: 150,
+            defense: 90,
+            stability: 90,
+            heat: 50,
+            slots: 3,
+            coordinates: { x: 50, y: 45 },
+            polygonPoints: "35,40 45,38 60,40 65,50 55,55 45,55 35,50",
+            color: "#00FFFF"
+        },
+        {
+            id: 4,
+            name: 'HEYWOOD',
+            district: 'HEYWOOD',
+            description: 'Dense urban sprawl. Valentinos territory.',
+            controlled: false,
+            income: 65,
+            defense: 55,
+            stability: 60,
+            heat: 15,
+            slots: 2,
+            coordinates: { x: 45, y: 60 },
+            polygonPoints: "30,55 45,55 60,52 65,60 60,70 45,72 35,68 30,60",
+            color: "#44FF44"
+        },
+        {
+            id: 5,
+            name: 'SANTO DOMINGO',
+            district: 'SANTO DOMINGO',
+            description: 'Industrial factory zone. 6th Street turf.',
+            controlled: false,
+            income: 60,
+            defense: 45,
+            stability: 40,
+            heat: 10,
+            slots: 1,
+            coordinates: { x: 75, y: 70 },
+            polygonPoints: "65,60 75,55 90,60 95,80 85,85 70,80 60,70",
+            color: "#4444FF"
+        },
+        {
+            id: 6,
+            name: 'PACIFICA',
+            district: 'PACIFICA',
+            description: 'Lawless combat zone. Voodoo Boys territory.',
+            controlled: false,
+            income: 40,
+            defense: 30,
+            stability: 20,
+            heat: 5,
+            slots: 1,
+            coordinates: { x: 30, y: 75 },
+            polygonPoints: "20,65 35,68 45,72 55,75 50,88 35,90 20,85 15,75",
+            color: "#AA00FF"
+        },
+        {
+            id: 7,
+            name: 'BADLANDS',
+            district: 'OUTSKIRTS',
+            description: 'Open desert plains. Your home turf.',
+            controlled: true,
+            income: 30,
+            defense: 100,
+            stability: 100,
+            heat: 0,
+            slots: 3,
+            coordinates: { x: 50, y: 95 },
+            polygonPoints: "5,85 20,85 35,90 50,88 65,85 80,85 95,80 98,100 2,100",
+            color: "#FFD700"
+        }
+    ],
+    upgrades: [
+        { id: 'ARMORY', name: 'Armory', level: 0, maxLevel: 3, description: 'Better gear for your crew.', cost: 1000, effect: '+5% Mission Success Chance per level.' },
+        { id: 'MEDBAY', name: 'Medbay', level: 0, maxLevel: 3, description: 'Advanced medical facilities.', cost: 800, effect: '-10% Injury Recovery Time per level.' },
+        { id: 'GARAGE', name: 'Garage', level: 0, maxLevel: 3, description: 'Tuned up rides.', cost: 1200, effect: '-10% Mission Duration per level.' },
+        { id: 'NETROOM', name: 'Netroom', level: 0, maxLevel: 3, description: 'Secure network access.', cost: 1500, effect: '+10% Intel from Scouting.' }
     ],
     availableMissions: [],
-    activeMissions: [],
     activeEncounters: [],
     loadingProgress: 0
 });
@@ -170,7 +303,11 @@ export const healMember = (memberId: number): boolean => {
     const member = state.members.find(m => m.id === memberId);
 
     if (member && member.injured) {
-        const healCost = 200;
+        // MEDBAY Upgrade: -10% Healing Cost per level
+        const medbay = state.upgrades.find(u => u.id === 'MEDBAY');
+        const discount = medbay ? medbay.level * 0.1 : 0;
+        const healCost = Math.floor(200 * (1 - discount));
+
         if (state.eddies >= healCost) {
             addEddies(-healCost);
             member.health = member.maxHealth;
@@ -253,10 +390,16 @@ export const startMission = (memberIds: number[], missionId: number, durationOve
     // Add active mission
     // Calculate Duration with Nomad Passive
     let duration = durationOverride !== null ? durationOverride : mission.duration;
+    // GARAGE Upgrade: -10% Mission Duration per level
+    const garage = state.upgrades.find(u => u.id === 'GARAGE');
+    const garageBonus = garage ? garage.level * 0.1 : 0;
+
     const hasNomad = members.some(m => m.class === 'NOMAD');
-    if (hasNomad) {
-        duration = Math.floor(duration * 0.85); // 15% reduction
-    }
+    let durationMultiplier = 1 - garageBonus;
+    if (hasNomad) durationMultiplier -= 0.15;
+
+    duration = Math.floor(duration * Math.max(0.1, durationMultiplier));
+
 
     const activeMission: ActiveMission = {
         id: Date.now() + Math.floor(Math.random() * 1000),
@@ -304,6 +447,12 @@ export const completeMission = (activeMissionId: number) => {
     const hasSolo = members.some(m => m.class === 'SOLO');
     if (hasSolo && (mission.type === 'HEIST' || mission.type === 'BOUNTY')) {
         teamPower *= 1.1;
+    }
+
+    // ARMORY Upgrade: +5% Success Chance (Power) per level
+    const armory = state.upgrades.find(u => u.id === 'ARMORY');
+    if (armory) {
+        teamPower *= (1 + (armory.level * 0.05));
     }
 
     // Difficulty Rating (Default to 50 if missing)
@@ -579,8 +728,7 @@ export const captureTerritory = (territoryId: number): boolean => {
     return false;
 };
 
-// Rival Gang Management
-export const rivalGangManager = new RivalGangManager(gameStore);
+
 
 export const attackTerritory = (territoryId: number, memberIds: number[]) => {
     const state = gameStore.get();
@@ -678,17 +826,122 @@ export const resetGameState = () => {
         }
     ]);
     gameStore.setKey('territories', [
-        { id: 1, name: 'WATSON', controlled: false, income: 50 },
-        { id: 2, name: 'WESTBROOK', controlled: false, income: 75 },
-        { id: 3, name: 'CITY CENTER', controlled: false, income: 100 },
-        { id: 4, name: 'SANTO DOMINGO', controlled: false, income: 60 },
-        { id: 5, name: 'PACIFICA', controlled: false, income: 80 },
-        { id: 6, name: 'THE GARAGE', controlled: true, income: 25 }
+        {
+            id: 1,
+            name: 'WATSON',
+            district: 'WATSON',
+            description: 'Industrial district and home to Maelstrom.',
+            controlled: false,
+            income: 50,
+            defense: 40,
+            stability: 50,
+            heat: 10,
+            slots: 1,
+            coordinates: { x: 45, y: 20 },
+            polygonPoints: "25,25 35,15 55,10 75,15 80,25 70,35 60,40 40,40 30,35",
+            color: "#FF4444"
+        },
+        {
+            id: 2,
+            name: 'WESTBROOK',
+            district: 'WESTBROOK',
+            description: 'Wealthy residential area. Tyger Claws turf.',
+            controlled: false,
+            income: 80,
+            defense: 60,
+            stability: 70,
+            heat: 20,
+            slots: 2,
+            coordinates: { x: 80, y: 35 },
+            polygonPoints: "70,35 80,25 95,30 98,50 90,60 75,55 65,45",
+            color: "#FF8800"
+        },
+        {
+            id: 3,
+            name: 'CITY CENTER',
+            district: 'CITY CENTER',
+            description: 'Corporate heart of Night City. Heavily guarded.',
+            controlled: false,
+            income: 150,
+            defense: 90,
+            stability: 90,
+            heat: 50,
+            slots: 3,
+            coordinates: { x: 50, y: 45 },
+            polygonPoints: "35,40 45,38 60,40 65,50 55,55 45,55 35,50",
+            color: "#00FFFF"
+        },
+        {
+            id: 4,
+            name: 'HEYWOOD',
+            district: 'HEYWOOD',
+            description: 'Dense urban sprawl. Valentinos territory.',
+            controlled: false,
+            income: 65,
+            defense: 55,
+            stability: 60,
+            heat: 15,
+            slots: 2,
+            coordinates: { x: 45, y: 60 },
+            polygonPoints: "30,55 45,55 60,52 65,60 60,70 45,72 35,68 30,60",
+            color: "#44FF44"
+        },
+        {
+            id: 5,
+            name: 'SANTO DOMINGO',
+            district: 'SANTO DOMINGO',
+            description: 'Industrial factory zone. 6th Street turf.',
+            controlled: false,
+            income: 60,
+            defense: 45,
+            stability: 40,
+            heat: 10,
+            slots: 1,
+            coordinates: { x: 75, y: 70 },
+            polygonPoints: "65,60 75,55 90,60 95,80 85,85 70,80 60,70",
+            color: "#4444FF"
+        },
+        {
+            id: 6,
+            name: 'PACIFICA',
+            district: 'PACIFICA',
+            description: 'Lawless combat zone. Voodoo Boys territory.',
+            controlled: false,
+            income: 40,
+            defense: 30,
+            stability: 20,
+            heat: 5,
+            slots: 1,
+            coordinates: { x: 30, y: 75 },
+            polygonPoints: "20,65 35,68 45,72 55,75 50,88 35,90 20,85 15,75",
+            color: "#AA00FF"
+        },
+        {
+            id: 7,
+            name: 'BADLANDS',
+            district: 'OUTSKIRTS',
+            description: 'Open desert plains. Your home turf.',
+            controlled: true,
+            income: 30,
+            defense: 100,
+            stability: 100,
+            heat: 0,
+            slots: 3,
+            coordinates: { x: 50, y: 95 },
+            polygonPoints: "5,85 20,85 35,90 50,88 65,85 80,85 95,80 98,100 2,100",
+            color: "#FFD700"
+        }
+    ]);
+    gameStore.setKey('upgrades', [
+        { id: 'ARMORY', name: 'Armory', level: 0, maxLevel: 3, description: 'Better gear for your crew.', cost: 1000, effect: '+5% Mission Success Chance per level.' },
+        { id: 'MEDBAY', name: 'Medbay', level: 0, maxLevel: 3, description: 'Advanced medical facilities.', cost: 800, effect: '-10% Injury Recovery Time per level.' },
+        { id: 'GARAGE', name: 'Garage', level: 0, maxLevel: 3, description: 'Tuned up rides.', cost: 1200, effect: '-10% Mission Duration per level.' },
+        { id: 'NETROOM', name: 'Netroom', level: 0, maxLevel: 3, description: 'Secure network access.', cost: 1500, effect: '+10% Intel from Scouting.' }
     ]);
     gameStore.setKey('activeMissions', []);
     gameStore.setKey('activeEncounters', []);
     generateMissions();
-    rivalGangManager.initialize();
+    rivalGangManager.initialize(gameStore);
     console.log('[GameStore] Game state reset to initial values');
 };
 
@@ -697,7 +950,7 @@ generateMissions();
 
 // Initialize rival gangs after a short delay to ensure gameStore is ready
 setTimeout(() => {
-    rivalGangManager.initialize();
+    rivalGangManager.initialize(gameStore);
 }, 100);
 
 // Territory income every 10s

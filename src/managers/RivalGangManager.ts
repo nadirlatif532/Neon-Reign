@@ -7,6 +7,13 @@ export interface RivalGang {
     territories: number[];
     strength: number;
     aggression: number;
+    // New Diplomacy & Resource fields
+    relationship: number; // -100 (War) to 100 (Ally) with Player
+    allies: string[]; // IDs of allied gangs
+    enemies: string[]; // IDs of enemy gangs
+    resources: number; // For funding operations
+    color: string; // Hex color for map
+    pacts: { type: 'NON_AGGRESSION' | 'ALLIANCE', expiresAt: number }[];
 }
 
 export class RivalGangManager {
@@ -15,18 +22,18 @@ export class RivalGangManager {
     private gameStore: any;
     private aiInterval: number | null = null;
 
-    constructor(gameStore: any) {
-        this.gameStore = gameStore;
+    constructor() {
     }
 
-    initialize() {
+    initialize(gameStore: any) {
         if (this.initialized) return;
+        this.gameStore = gameStore;
 
         // Create initial rival gangs
         this.gangs = [
-            this.createGang('MAELSTROM', 'aggressive'),
-            this.createGang('TYGER CLAWS', 'balanced'),
-            this.createGang('VALENTINOS', 'defensive')
+            this.createGang('MAELSTROM', 'aggressive', '#FF0000'),
+            this.createGang('TYGER CLAWS', 'balanced', '#00FF00'),
+            this.createGang('VALENTINOS', 'defensive', '#FFD700')
         ];
 
         this.initialized = true;
@@ -59,7 +66,7 @@ export class RivalGangManager {
         this.startAI();
     }
 
-    private createGang(name: string, personality: 'aggressive' | 'balanced' | 'defensive'): RivalGang {
+    private createGang(name: string, personality: 'aggressive' | 'balanced' | 'defensive', color: string = '#FFFFFF'): RivalGang {
         console.log(`Creating gang ${name}`);
         const gang: RivalGang = {
             id: Math.random().toString(36).substr(2, 9),
@@ -67,7 +74,13 @@ export class RivalGangManager {
             personality,
             territories: [],
             strength: 50,
-            aggression: personality === 'aggressive' ? 0.7 : personality === 'balanced' ? 0.5 : 0.3
+            aggression: personality === 'aggressive' ? 0.7 : personality === 'balanced' ? 0.5 : 0.3,
+            relationship: -10, // Starts slightly hostile
+            allies: [],
+            enemies: [],
+            resources: 500,
+            color,
+            pacts: []
         };
 
         return gang;
@@ -142,6 +155,9 @@ export class RivalGangManager {
         }
     }
 
+    /**
+     * @deprecated Use WarfareManager.startOperation instead
+     */
     attackTerritory(territoryId: number, playerMembers: any[]) {
         const state = this.gameStore.get();
         const territory = state.territories.find((t: any) => t.id === territoryId);
@@ -168,7 +184,6 @@ export class RivalGangManager {
 
             // SIGNIFICANT INCOME BOOST
             // Base boost + multiplier based on difficulty
-            const oldIncome = territory.income;
             territory.income = Math.floor(territory.income * 3) + 50;
 
             gang.territories = gang.territories.filter(id => id !== territoryId);
@@ -232,12 +247,54 @@ export class RivalGangManager {
         }
     }
 
+    getAiMove(gang: RivalGang, state: any): { type: 'SCOUT' | 'RAID' | 'ASSAULT' | 'FORTIFY', targetId: number } | null {
+        // Simple AI Logic
+        if (gang.resources < 50) return null; // Too poor
+
+        // 1. Check own territories for defense
+        const myTerritories = state.territories.filter((t: any) => gang.territories.includes(t.id));
+        const weakTerritory = myTerritories.find((t: any) => t.defense < 30);
+
+        if (weakTerritory && gang.resources >= 200) {
+            return { type: 'FORTIFY', targetId: weakTerritory.id };
+        }
+
+        // 2. Look for expansion targets
+        // Find adjacent territories (conceptually) or just any non-owned
+        // For simplicity, pick a random non-owned territory
+        const potentialTargets = state.territories.filter((t: any) => !gang.territories.includes(t.id));
+        if (potentialTargets.length === 0) return null;
+
+        const target = potentialTargets[Math.floor(Math.random() * potentialTargets.length)];
+
+        // Decide action based on aggression and target state
+        const roll = Math.random();
+
+        if (gang.personality === 'aggressive') {
+            if (roll < 0.6 && gang.resources >= 1000) return { type: 'ASSAULT', targetId: target.id };
+            if (roll < 0.9 && gang.resources >= 500) return { type: 'RAID', targetId: target.id };
+        } else if (gang.personality === 'balanced') {
+            if (roll < 0.3 && gang.resources >= 1000) return { type: 'ASSAULT', targetId: target.id };
+            if (roll < 0.7 && gang.resources >= 500) return { type: 'RAID', targetId: target.id };
+        } else {
+            // Defensive
+            if (roll < 0.1 && gang.resources >= 1000) return { type: 'ASSAULT', targetId: target.id };
+        }
+
+        if (gang.resources >= 50) return { type: 'SCOUT', targetId: target.id };
+
+        return null;
+    }
+
     getGangInfo() {
         return this.gangs.map(g => ({
+            id: g.id,
             name: g.name,
             territories: g.territories.length,
             strength: g.strength,
-            personality: g.personality
+            personality: g.personality,
+            color: g.color,
+            relationship: g.relationship
         }));
     }
 
@@ -245,9 +302,133 @@ export class RivalGangManager {
         return this.gangs.find(g => g.territories.includes(territoryId));
     }
 
-    destroy() {
-        if (this.aiInterval) {
-            clearInterval(this.aiInterval);
+    getGangById(id: string) {
+        return this.gangs.find(g => g.id === id);
+    }
+
+    changeRelationship(gangId: string, amount: number) {
+        const gang = this.gangs.find(g => g.id === gangId);
+        if (gang) {
+            gang.relationship = Math.max(-100, Math.min(100, gang.relationship + amount));
+            console.log(`Relationship with ${gang.name} changed to ${gang.relationship}`);
         }
     }
+
+    setAlliance(gangId: string, isAlly: boolean) {
+        const gang = this.gangs.find(g => g.id === gangId);
+        if (gang) {
+            if (isAlly) {
+                gang.relationship = 100;
+                if (!gang.allies.includes('PLAYER')) gang.allies.push('PLAYER');
+            } else {
+                gang.allies = gang.allies.filter(id => id !== 'PLAYER');
+            }
+        }
+    }
+
+    // --- Diplomacy Methods ---
+
+    signPact(gangId: string, type: 'NON_AGGRESSION' | 'ALLIANCE', _durationDays: number = 3): boolean {
+        const gang = this.getGangById(gangId);
+        if (!gang) return false;
+
+        // Make it 5 minutes for gameplay pacing
+        const durationMs = 5 * 60 * 1000;
+        const expiresAt = Date.now() + durationMs;
+
+        gang.pacts.push({ type, expiresAt });
+        this.changeRelationship(gangId, 20);
+
+        window.dispatchEvent(new CustomEvent('game-event', {
+            detail: { message: `Pact signed with ${gang.name}`, type: 'success' }
+        }));
+        return true;
+    }
+
+    demandTribute(gangId: string): { success: boolean, amount: number, message: string } {
+        const gang = this.getGangById(gangId);
+        if (!gang) return { success: false, amount: 0, message: 'Gang not found' };
+
+        // Logic: Success depends on Player Power vs Gang Strength
+        // For now, simple RNG based on relationship (hated gangs refuse)
+
+        if (gang.relationship < -50) {
+            this.changeRelationship(gangId, -20);
+            return { success: false, amount: 0, message: `${gang.name} refused and insulted you!` };
+        }
+
+        const amount = 500;
+        if (gang.resources >= amount) {
+            gang.resources -= amount;
+            this.changeRelationship(gangId, -10); // They don't like paying
+            return { success: true, amount, message: `${gang.name} paid ${amount}€ tribute.` };
+        } else {
+            return { success: false, amount: 0, message: `${gang.name} is too broke to pay.` };
+        }
+    }
+
+    improveRelations(gangId: string, cost: number): boolean {
+        const gang = this.getGangById(gangId);
+        if (!gang) return false;
+
+        this.changeRelationship(gangId, 15);
+        return true;
+    }
+
+    hasPact(gangId: string, type: 'NON_AGGRESSION' | 'ALLIANCE'): boolean {
+        const gang = this.getGangById(gangId);
+        if (!gang) return false;
+        return gang.pacts.some(p => p.type === type && p.expiresAt > Date.now());
+    }
+
+    tradeIntel(gangId: string): { success: boolean, message: string, data?: any } {
+        const gang = this.getGangById(gangId);
+        if (!gang) return { success: false, message: 'Gang not found' };
+
+        if (gang.relationship < 0) {
+            return { success: false, message: `${gang.name} refuses to share intel with enemies.` };
+        }
+
+        // Reveal a random territory of theirs or a rival
+        const state = this.gameStore.get();
+        const unknownTerritories = state.territories.filter((t: any) =>
+            (t.rivalGang === gangId || gang.enemies.includes(t.rivalGang)) && (t.intel || 0) < 100
+        );
+
+        if (unknownTerritories.length === 0) {
+            return { success: false, message: 'No new intel available from this gang.' };
+        }
+
+        const target = unknownTerritories[Math.floor(Math.random() * unknownTerritories.length)];
+        target.intel = 100; // Full reveal
+        this.gameStore.setKey('territories', [...state.territories]);
+
+        return { success: true, message: `Intel received on ${target.name}!`, data: target };
+    }
+
+    proxyWar(gangId: string, targetGangId: string): { success: boolean, message: string } {
+        const gang = this.getGangById(gangId);
+        const targetGang = this.getGangById(targetGangId);
+
+        if (!gang || !targetGang) return { success: false, message: 'Invalid gangs' };
+
+        if (gang.relationship < 50) {
+            return { success: false, message: `${gang.name} doesn't trust you enough for this.` };
+        }
+
+        // Trigger an attack
+        const state = this.gameStore.get();
+        const targetTerritory = state.territories.find((t: any) => t.rivalGang === targetGangId);
+        if (targetTerritory) {
+            // Simulate attack start
+            window.dispatchEvent(new CustomEvent('game-event', {
+                detail: { message: `${gang.name} is preparing to attack ${targetGang.name}!`, type: 'neutral' }
+            }));
+            return { success: true, message: `${gang.name} agreed to attack ${targetGang.name}.` };
+        }
+
+        return { success: false, message: 'No valid targets found.' };
+    }
 }
+
+export const rivalGangManager = new RivalGangManager();

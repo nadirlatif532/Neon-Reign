@@ -21,12 +21,8 @@ interface VideoAsset {
 
 export const AssetManifest = {
     images: [
-        { key: 'city_bg_user', path: 'assets/city.jpg' },
         { key: 'city_bg_mobile', path: 'assets/city_mb.png' },
-        { key: 'biker', path: 'assets/biker.png' },
-        { key: 'bar_building', path: 'assets/bar_building.png' },
-        { key: 'hq_building', path: 'assets/hq_building.png' },
-        { key: 'garage_building', path: 'assets/garage_building.png' }
+        { key: 'biker', path: 'assets/biker.png' }
     ] as ImageAsset[],
     atlases: [] as AtlasAsset[],
     audio: [

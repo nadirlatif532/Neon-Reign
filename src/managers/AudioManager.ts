@@ -359,6 +359,29 @@ export class AudioManager {
         osc.start(now);
         osc.stop(now + 0.2);
     }
+    // Hover sound
+    playHover() {
+        if (!this.sfxEnabled) return;
+        const ctx = this.audioContext;
+        const now = ctx.currentTime;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(600, now + 0.05);
+
+        gain.gain.setValueAtTime(this.sfxVolume * 0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.05);
+    }
+
     // Alert sound for encounters
     playAlert() {
         if (!this.sfxEnabled) return;

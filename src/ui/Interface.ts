@@ -1,9 +1,24 @@
-import { gameStore, startMission, refreshMissions, Mission, addEddies, recruitMember, healMember, upgradeMember, rivalGangManager, attackTerritory, RIDER_CLASSES, removeEncounter, setGangName } from '@/state/GameStore';
-import { AsciiGenerator } from '@/utils/AsciiGenerator';
+import {
+  gameStore,
+  addEddies,
+  recruitMember,
+  healMember,
+  upgradeMember,
+  removeEncounter,
+  setGangName,
+  startMission,
+  refreshMissions,
+  Mission,
+  RIDER_CLASSES
+} from '../state/GameStore';
+import { rivalGangManager } from '../managers/RivalGangManager';
+import { MapInterface } from './MapInterface';
+import { warfareManager } from '../managers/WarfareManager';
+import { saveManager } from '../managers/SaveManager';
+import { encounterManager } from '../managers/EncounterManager';
 import { audioManager } from '../managers/AudioManager';
-import { saveManager } from '@/managers/SaveManager';
-import { encounterManager } from '@/managers/EncounterManager';
-import { ENCOUNTERS } from '@/data/Encounters';
+import { AsciiGenerator } from '../utils/AsciiGenerator';
+import { ENCOUNTERS } from '../data/Encounters';
 
 export class Interface {
   private container: HTMLElement;
@@ -13,6 +28,7 @@ export class Interface {
   private lastActiveMissions: any[] = [];
   private lastAvailableMissions: any[] = [];
   private lastTerritories: any[] = [];
+  private mapInterface: MapInterface;
 
 
   constructor() {
@@ -29,6 +45,66 @@ export class Interface {
     this.setupListeners();
     this.setupStoreSubscription();
     this.startFlavorTextRotation();
+    this.createScanlines();
+    this.setupGlobalClickEffects();
+
+    this.mapInterface = new MapInterface();
+  }
+
+  private createScanlines() {
+    const scanlines = document.createElement('div');
+    scanlines.className = 'scanlines';
+    document.body.appendChild(scanlines);
+
+    // Add a CRT vignette effect
+    const vignette = document.createElement('div');
+    vignette.className = 'crt-vignette';
+    document.body.appendChild(vignette);
+  }
+
+  private setupGlobalClickEffects() {
+    document.addEventListener('click', (e) => {
+      this.createClickParticle(e.clientX, e.clientY);
+    });
+  }
+
+  private createClickParticle(x: number, y: number) {
+    const particle = document.createElement('div');
+    particle.className = 'click-particle';
+    particle.style.left = `${x}px`;
+    particle.style.top = `${y}px`;
+    document.body.appendChild(particle);
+
+    // Random glitch offset
+    const xOffset = (Math.random() - 0.5) * 20;
+    const yOffset = (Math.random() - 0.5) * 20;
+    particle.style.setProperty('--x-offset', `${xOffset}px`);
+    particle.style.setProperty('--y-offset', `${yOffset}px`);
+
+    setTimeout(() => {
+      particle.remove();
+    }, 500);
+  }
+
+  public showFloatingText(text: string, x: number, y: number, colorClass: string = 'text-white') {
+    const el = document.createElement('div');
+    el.className = `floating-text ${colorClass} font-cyber font-bold text-xl absolute pointer-events-none z-[100]`;
+    el.textContent = text;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+
+    document.body.appendChild(el);
+
+    // Animate and remove
+    const animation = el.animate([
+      { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+      { transform: 'translate(0, -50px) scale(1.2)', opacity: 0 }
+    ], {
+      duration: 1000,
+      easing: 'ease-out'
+    });
+
+    animation.onfinish = () => el.remove();
   }
 
   private setupHUD() {
@@ -383,6 +459,11 @@ export class Interface {
       this.showGangNameModal();
     });
 
+    window.addEventListener('open-territory-details', (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      this.openTerritoryModal(detail.territoryId);
+    });
+
   }
 
   private setupStoreSubscription() {
@@ -392,12 +473,28 @@ export class Interface {
       const membersEl = document.getElementById('hud-members');
 
       if (eddiesEl) {
+        const currentEddies = parseInt(eddiesEl.textContent?.replace(/,/g, '') || '0');
+        if (state.eddies !== currentEddies && currentEddies !== 0) {
+          const diff = state.eddies - currentEddies;
+          const rect = eddiesEl.getBoundingClientRect();
+          this.showFloatingText(`${diff > 0 ? '+' : ''}${diff}€`, rect.right + 20, rect.top, diff > 0 ? 'text-cp-yellow' : 'text-cp-red');
+        }
         eddiesEl.textContent = state.eddies.toLocaleString();
         eddiesEl.parentElement?.classList.remove('animate-pulse-cyber');
         void eddiesEl.offsetWidth; // trigger reflow
         eddiesEl.parentElement?.classList.add('animate-pulse-cyber');
       }
-      if (repEl) repEl.textContent = state.rep.toLocaleString();
+
+      if (repEl) {
+        const currentRep = parseInt(repEl.textContent?.replace(/,/g, '') || '0');
+        if (state.rep !== currentRep && currentRep !== 0) {
+          const diff = state.rep - currentRep;
+          const rect = repEl.getBoundingClientRect();
+          this.showFloatingText(`${diff > 0 ? '+' : ''}${diff} REP`, rect.right + 20, rect.top, diff > 0 ? 'text-cp-cyan' : 'text-cp-red');
+        }
+        repEl.textContent = state.rep.toLocaleString();
+      }
+
       if (membersEl) membersEl.textContent = state.members.length.toString();
 
       // Update gang name header
@@ -405,22 +502,35 @@ export class Interface {
       if (gangNameHeader) gangNameHeader.textContent = state.gangName.toUpperCase();
 
       // Update Mission Board if open and on missions tab
-      const tabContent = document.getElementById('tab-content');
-      if (tabContent) {
+      // Update Mission Board
+      const missionContent = document.getElementById('mission-tab-content');
+      if (missionContent) {
         if (this.activeTab === 'missions') {
-          // Check if we need to re-render (simple reference check)
           if (state.activeMissions !== this.lastActiveMissions || state.availableMissions !== this.lastAvailableMissions) {
             this.lastActiveMissions = state.activeMissions;
             this.lastAvailableMissions = state.availableMissions;
-            this.renderMissionsTab(tabContent);
+            this.renderMissionsTab(missionContent);
           }
-        } else if (this.activeTab === 'territories' || this.activeTab === 'gangs') {
-          if (state.territories !== this.lastTerritories) {
-            this.lastTerritories = state.territories;
-            if (this.activeTab === 'territories') this.renderTerritoryTab(tabContent);
-            if (this.activeTab === 'gangs') this.renderGangsTab(tabContent);
-          }
+        } else if (this.activeTab === 'roster') {
+          this.renderRosterTab(missionContent);
         }
+      }
+
+      // Update Afterlife (Territory/Gangs)
+      const afterlifeContent = document.getElementById('afterlife-tab-content');
+      if (afterlifeContent) {
+        if (state.territories !== this.lastTerritories) {
+          this.lastTerritories = state.territories;
+          if (this.activeTab === 'territory') this.renderTerritoryTab(afterlifeContent);
+          if (this.activeTab === 'gangs') this.renderGangsTab(afterlifeContent);
+        }
+      }
+
+      // Update Ripperdoc (Medical)
+      const ripperdocContent = document.getElementById('ripperdoc-tab-content');
+      if (ripperdocContent && this.activeTab === 'medical') {
+        const overlay = ripperdocContent.closest('.fixed') as HTMLElement;
+        if (overlay) this.renderMedicalTab(ripperdocContent, overlay);
       }
 
       // Render Active Encounters
@@ -650,18 +760,16 @@ export class Interface {
       <div class="flex gap-2 p-4 bg-black/30 border-b border-cp-yellow/30">
         <button class="cyber-btn tab-btn active" data-tab="missions">MISSIONS</button>
         <button class="cyber-btn tab-btn" data-tab="roster">ROSTER</button>
-        <button class="cyber-btn tab-btn" data-tab="territory">TERRITORY</button>
-        <button class="cyber-btn tab-btn" data-tab="gangs">GANGS</button>
       </div>
 
       <!-- Tab Content -->
-      <div class="flex-1 overflow-y-auto p-5" id="tab-content"></div>
+      <div class="flex-1 overflow-y-auto p-5" id="mission-tab-content"></div>
     `;
 
     overlay.appendChild(modal);
     this.modalContainer.appendChild(overlay);
 
-    const tabContent = modal.querySelector('#tab-content')!;
+    const tabContent = modal.querySelector('#mission-tab-content')!;
     this.activeTab = 'missions';
 
     // Tab switching
@@ -671,7 +779,9 @@ export class Interface {
         btn.classList.add('active');
         this.activeTab = (btn as HTMLElement).dataset.tab!;
         audioManager.playClick();
-        this.renderTabContent(tabContent, this.activeTab);
+
+        if (this.activeTab === 'missions') this.renderMissionsTab(tabContent);
+        else if (this.activeTab === 'roster') this.renderRosterTab(tabContent);
       });
     });
 
@@ -679,21 +789,7 @@ export class Interface {
     modal.querySelector('#close-modal')?.addEventListener('click', () => overlay.remove());
 
     // Render initial tab
-    this.renderTabContent(tabContent, this.activeTab);
-  }
-
-  private renderTabContent(container: Element, tab: string) {
-    container.innerHTML = '';
-
-    if (tab === 'missions') {
-      this.renderMissionsTab(container);
-    } else if (tab === 'roster') {
-      this.renderRosterTab(container);
-    } else if (tab === 'territory') {
-      this.renderTerritoryTab(container);
-    } else if (tab === 'gangs') {
-      this.renderGangsTab(container);
-    }
+    this.renderMissionsTab(tabContent);
   }
 
   private renderMissionsTab(container: Element) {
@@ -892,39 +988,6 @@ export class Interface {
           </div>
 
           <!-- Team Stats & Probability -->
-          <div class="bg-black/40 border border-cp-yellow p-3 mt-1 shrink-0">
-            <div class="flex justify-between items-center border-b border-cp-yellow/30 pb-1 mb-2">
-              <h4 class="text-cp-yellow font-bold font-cyber text-sm">PROJECTIONS</h4>
-              <div class="text-xs text-gray-400 font-cyber">
-                LVL ${mission.minLevel}+ 
-                ${mission.minCool ? `• COOL ${mission.minCool}+` : ''}
-                ${mission.minReflex ? `• REF ${mission.minReflex}+` : ''}
-              </div>
-            </div>
-            
-            <div class="flex justify-between mb-1 text-xs">
-              <span class="text-gray-400">TEAM POWER:</span>
-              <span class="text-white font-bold" id="team-power">0</span>
-            </div>
-            <div class="flex justify-between mb-1 text-xs">
-              <span class="text-gray-400">WIN CHANCE:</span>
-              <span class="text-cp-cyan font-bold" id="win-chance">0%</span>
-            </div>
-            <div class="w-full h-1.5 bg-gray-800 mb-2">
-              <div id="win-bar" class="h-full bg-cp-cyan transition-all duration-300" style="width: 0%"></div>
-            </div>
-
-            <div class="flex justify-between text-xs">
-              <span class="text-gray-400">INJURY RISK:</span>
-              <span class="text-cp-red font-bold" id="injury-risk">--</span>
-            </div>
-            
-            <div id="active-passives" class="mt-2 border-t border-gray-700 pt-1"></div>
-          </div>
-        </div>
-
-        <!-- Right Column: Crew Selection -->
-        <div class="flex flex-col h-full border-l border-cp-cyan/30 pl-5">
           <div class="flex justify-between items-center mb-2">
             <h3 class="text-cp-yellow m-0 font-cyber text-lg font-bold">SELECT CREW</h3>
             <span class="text-[10px] text-gray-400">MAX 3</span>
@@ -1166,66 +1229,46 @@ export class Interface {
     });
 
     const modal = document.createElement('div');
-    modal.className = 'bg-cp-bg border-[3px] border-cp-cyan shadow-[0_0_40px_rgba(0,240,255,0.5)] w-[90%] max-w-[500px] flex flex-col animate-modalSlideIn pointer-events-auto relative';
-
-    // Generate a random class for the recruit to display
-    const classes = Object.keys(RIDER_CLASSES) as (keyof typeof RIDER_CLASSES)[];
-    const randomClass = classes[Math.floor(Math.random() * classes.length)];
-
-    // Use AsciiGenerator to get random recruit details
-    const { art, name, description } = AsciiGenerator.generatePortrait();
-
-    const recruit = {
-      name: name,
-      class: randomClass,
-      description: description,
-      cost: 1000,
-      art: art
-    };
+    modal.className = 'bg-cp-bg border-[3px] border-cp-cyan shadow-[0_0_40px_rgba(0,240,255,0.5)] w-[90%] max-w-[1000px] h-[85vh] flex flex-col animate-modalSlideIn pointer-events-auto relative';
 
     modal.innerHTML = `
-      <div class="bg-cp-cyan/10 border-b-2 border-cp-cyan p-5 flex justify-between items-center">
-        <h2 class="text-cp-cyan m-0 text-3xl drop-shadow-[0_0_10px_var(--cp-cyan)] font-cyber font-bold">AFTERLIFE BAR</h2>
+      <div class="bg-cp-cyan/10 border-b-2 border-cp-cyan p-5 flex justify-between items-center shrink-0">
+        <h2 class="text-cp-cyan m-0 text-3xl drop-shadow-[0_0_10px_var(--cp-cyan)] font-cyber font-bold">AFTERLIFE</h2>
         <button id="close-modal" class="bg-transparent border-2 border-cp-red text-cp-red text-3xl w-10 h-10 cursor-pointer transition-all duration-300 hover:bg-cp-red hover:text-white hover:rotate-90 flex items-center justify-center font-bold">&times;</button>
       </div>
 
-      <div class="p-6 flex flex-col gap-4">
-        <div class="font-mono text-[10px] leading-none whitespace-pre text-cp-cyan bg-black/50 p-4 border border-cp-cyan/30 overflow-hidden select-none flex justify-center items-center min-h-[120px]">${recruit.art}</div>
-
-        <div class="border-l-4 border-cp-yellow pl-4">
-          <h3 class="text-white text-2xl font-cyber font-bold mb-1">${recruit.name}</h3>
-          <div class="text-cp-yellow text-sm font-cyber mb-2">CLASS: ${recruit.class}</div>
-          <p class="text-gray-400 text-sm italic mb-3">"${recruit.description}"</p>
-          <div class="text-cp-cyan text-sm font-bold font-cyber border-t border-gray-700 pt-2">
-            PASSIVE: ${RIDER_CLASSES[recruit.class].passive}
-          </div>
-        </div>
-
-        <button id="recruit-btn" class="cyber-btn w-full py-4 text-xl mt-2 group relative overflow-hidden">
-          <span class="relative z-10">JOIN ${gameStore.get().gangName.toUpperCase()} (${recruit.cost}€)</span>
-          <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-        </button>
+      <!-- Tabs -->
+      <div class="flex gap-2 p-4 bg-black/30 border-b border-cp-yellow/30">
+        <button class="cyber-btn tab-btn active" data-tab="territory">TERRITORY</button>
+        <button class="cyber-btn tab-btn" data-tab="gangs">GANGS</button>
       </div>
+
+      <div class="flex-1 overflow-y-auto p-5" id="afterlife-tab-content"></div>
     `;
 
     overlay.appendChild(modal);
     this.modalContainer.appendChild(overlay);
 
+    const tabContent = modal.querySelector('#afterlife-tab-content')!;
+    this.activeTab = 'territory';
+
+    // Tab switching
+    modal.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modal.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.activeTab = (btn as HTMLElement).dataset.tab!;
+        audioManager.playClick();
+
+        if (this.activeTab === 'territory') this.renderTerritoryTab(tabContent);
+        else if (this.activeTab === 'gangs') this.renderGangsTab(tabContent);
+      });
+    });
+
     modal.querySelector('#close-modal')?.addEventListener('click', () => overlay.remove());
 
-    modal.querySelector('#recruit-btn')?.addEventListener('click', () => {
-      audioManager.playClick();
-      const state = gameStore.get();
-      if (state.eddies >= recruit.cost) {
-        addEddies(-recruit.cost);
-        recruitMember(recruit.name, recruit.description, recruit.art, recruit.class as any);
-        audioManager.playPurchase();
-        this.showToast('MEMBER RECRUITED', 'success');
-        overlay.remove();
-      } else {
-        this.showToast('INSUFFICIENT FUNDS', 'error');
-      }
-    });
+    // Initial Render
+    this.renderTerritoryTab(tabContent);
   }
 
   private openRipperdoc() {
@@ -1247,17 +1290,48 @@ export class Interface {
         <button id="close-ripperdoc" class="bg-transparent border-2 border-cp-red text-cp-red text-3xl w-10 h-10 cursor-pointer transition-all duration-300 hover:bg-cp-red hover:text-white hover:rotate-90 flex items-center justify-center font-bold">&times;</button>
       </div>
 
-      <div class="flex-1 overflow-y-auto p-5">
-        <h3 class="text-cp-yellow font-cyber mb-4">MEDICAL & UPGRADES</h3>
-        <p class="text-gray-400 mb-4">Heal injured members and install cyberware</p>
-        <div id="members-list"></div>
+      <!-- Tabs -->
+      <div class="flex gap-2 p-4 bg-black/30 border-b border-cp-yellow/30">
+        <button class="cyber-btn tab-btn active" data-tab="medical">MEDICAL</button>
+        <button class="cyber-btn tab-btn" data-tab="recruit">RECRUIT</button>
       </div>
+
+      <div class="flex-1 overflow-y-auto p-5" id="ripperdoc-tab-content"></div>
     `;
 
     overlay.appendChild(modal);
     this.modalContainer.appendChild(overlay);
 
-    const membersList = modal.querySelector('#members-list')!;
+    const tabContent = modal.querySelector('#ripperdoc-tab-content')!;
+    this.activeTab = 'medical';
+
+    // Tab switching
+    modal.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modal.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.activeTab = (btn as HTMLElement).dataset.tab!;
+        audioManager.playClick();
+
+        if (this.activeTab === 'medical') this.renderMedicalTab(tabContent, overlay);
+        else if (this.activeTab === 'recruit') this.renderRecruitTab(tabContent, overlay);
+      });
+    });
+
+    modal.querySelector('#close-ripperdoc')?.addEventListener('click', () => overlay.remove());
+
+    // Initial Render
+    this.renderMedicalTab(tabContent, overlay);
+  }
+
+  private renderMedicalTab(container: Element, overlay: HTMLElement) {
+    container.innerHTML = `
+        <h3 class="text-cp-yellow font-cyber mb-4">MEDICAL & UPGRADES</h3>
+        <p class="text-gray-400 mb-4">Heal injured members and install cyberware</p>
+        <div id="members-list"></div>
+    `;
+
+    const membersList = container.querySelector('#members-list')!;
     const state = gameStore.get();
 
     state.members.forEach(member => {
@@ -1307,8 +1381,7 @@ export class Interface {
         if (healMember(memberId)) {
           audioManager.playHeal();
           this.showToast('MEMBER HEALED', 'success');
-          overlay.remove();
-          this.openRipperdoc();
+          this.renderMedicalTab(container, overlay); // Re-render
         } else {
           this.showToast('INSUFFICIENT FUNDS', 'error');
         }
@@ -1324,15 +1397,65 @@ export class Interface {
         if (upgradeMember(memberId, type)) {
           audioManager.playUpgrade();
           this.showToast(`UPGRADED: ${type.toUpperCase()}`, 'success');
-          overlay.remove();
-          this.openRipperdoc();
+          this.renderMedicalTab(container, overlay); // Re-render
         } else {
           this.showToast('INSUFFICIENT FUNDS', 'error');
         }
       });
     });
+  }
 
-    modal.querySelector('#close-ripperdoc')?.addEventListener('click', () => overlay.remove());
+  private renderRecruitTab(container: Element, overlay: HTMLElement) {
+    // Generate a random class for the recruit to display
+    const classes = Object.keys(RIDER_CLASSES) as (keyof typeof RIDER_CLASSES)[];
+    const randomClass = classes[Math.floor(Math.random() * classes.length)];
+
+    // Use AsciiGenerator to get random recruit details
+    const { art, name, description } = AsciiGenerator.generatePortrait();
+
+    const recruit = {
+      name: name,
+      class: randomClass,
+      description: description,
+      cost: 1000,
+      art: art
+    };
+
+    container.innerHTML = `
+      <div class="p-2 flex flex-col gap-4">
+        <h3 class="text-cp-yellow font-cyber">RECRUIT NEW MEMBERS</h3>
+        <div class="font-mono text-[10px] leading-none whitespace-pre text-cp-cyan bg-black/50 p-4 border border-cp-cyan/30 overflow-hidden select-none flex justify-center items-center min-h-[120px]">${recruit.art}</div>
+
+        <div class="border-l-4 border-cp-yellow pl-4">
+          <h3 class="text-white text-2xl font-cyber font-bold mb-1">${recruit.name}</h3>
+          <div class="text-cp-yellow text-sm font-cyber mb-2">CLASS: ${recruit.class}</div>
+          <p class="text-gray-400 text-sm italic mb-3">"${recruit.description}"</p>
+          <div class="text-cp-cyan text-sm font-bold font-cyber border-t border-gray-700 pt-2">
+            PASSIVE: ${RIDER_CLASSES[recruit.class].passive}
+          </div>
+        </div>
+
+        <button id="recruit-btn" class="cyber-btn w-full py-4 text-xl mt-2 group relative overflow-hidden">
+          <span class="relative z-10">JOIN ${gameStore.get().gangName.toUpperCase()} (${recruit.cost}€)</span>
+          <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+        </button>
+      </div>
+    `;
+
+    container.querySelector('#recruit-btn')?.addEventListener('click', () => {
+      audioManager.playClick();
+      const state = gameStore.get();
+      if (state.eddies >= recruit.cost) {
+        addEddies(-recruit.cost);
+        recruitMember(recruit.name, recruit.description, recruit.art, recruit.class as any);
+        audioManager.playPurchase();
+        this.showToast('MEMBER RECRUITED', 'success');
+        // Refresh to show a new recruit or stay? Let's refresh to show new recruit
+        this.renderRecruitTab(container, overlay);
+      } else {
+        this.showToast('INSUFFICIENT FUNDS', 'error');
+      }
+    });
   }
 
   // HQ Tab Rendering Methods
@@ -1409,244 +1532,629 @@ export class Interface {
   }
 
   private renderTerritoryTab(container: Element) {
+    this.mapInterface.cleanupTooltips();
+
+    // Ensure container has relative positioning for absolute children
+    (container as HTMLElement).style.position = 'relative';
+
+    this.mapInterface.mount(container as HTMLElement);
+
+    // Add Tutorial Button inside map viewing area, positioned above WESTBROOK
+    const helpBtn = document.createElement('button');
+    helpBtn.className = 'bg-black/90 border-2 border-cp-cyan text-cp-cyan w-12 h-12 rounded-full font-bold text-xl hover:bg-cp-cyan hover:text-black transition-colors shadow-[0_0_15px_rgba(0,240,255,0.5)]';
+    helpBtn.style.position = 'absolute';
+    helpBtn.style.top = '30px';
+    helpBtn.style.right = '15px';
+    helpBtn.style.zIndex = '100';
+    helpBtn.innerText = '?';
+    helpBtn.onclick = () => this.openTerritoryTutorial();
+    container.appendChild(helpBtn);
+
+    // Add Event Ticker
+    const ticker = document.createElement('div');
+    ticker.id = 'event-ticker';
+    ticker.className = 'absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-black/80 border-y border-cp-yellow text-cp-yellow px-6 py-2 font-cyber text-sm uppercase tracking-widest shadow-[0_0_15px_rgba(255,215,0,0.3)] hidden';
+    ticker.innerHTML = '<span class="animate-pulse">⚠ ACTIVE EVENT: <span id="event-name">POLICE RAID</span></span>';
+    container.appendChild(ticker);
+
+    // Check for active event
+    const activeEvent = warfareManager.getCurrentEvent();
+    if (activeEvent) {
+      ticker.querySelector('#event-name')!.textContent = activeEvent.name;
+      ticker.classList.remove('hidden');
+    }
+  }
+
+  private openTerritoryModal(territoryId: number) {
     const state = gameStore.get();
-    container.innerHTML = '';
+    const territory = state.territories.find(t => t.id === territoryId);
+    if (!territory) return;
 
-    const header = document.createElement('div');
-    header.className = 'mb-4';
-    header.innerHTML = '<h3 class="text-cp-yellow font-cyber text-xl mb-2">NIGHT CITY DISTRICTS</h3><p class="text-gray-400">Territory status overview</p>';
-    container.appendChild(header);
+    // Redirect to Hideout Modal if it's the Badlands
+    if (territory.name === 'BADLANDS') {
+      this.openHideoutModal();
+      return;
+    }
 
-    state.territories.forEach((t, index) => {
-      const div = document.createElement('div');
-      div.className = `p-4 mb-3 border-l-4 transition-all duration-300 ${t.controlled ? 'bg-green-900/20 border-green-500' : 'bg-black/60 border-gray-600'}`;
-      div.style.animationDelay = `${index * 0.1}s`;
-      div.classList.add('animate-slideIn', 'opacity-0', 'fill-mode-forwards');
+    const overlay = this.createOverlay();
+    const modal = document.createElement('div');
+    modal.className = `bg-cp-bg border-[3px] shadow-[0_0_40px_rgba(0,0,0,0.5)] w-[90%] max-w-[600px] flex flex-col animate-modalSlideIn pointer-events-auto transition-colors duration-300`;
 
-      const rivalGang = t.rivalGang ? rivalGangManager.getGangByTerritory(t.id) : null;
+    // Initial Render
+    this.renderModalContent(modal, territoryId);
 
-      div.innerHTML = `
-        <div class="flex justify-between items-center">
-          <div>
-            <div class="font-bold text-lg font-cyber ${t.controlled ? 'text-green-400' : 'text-white'}">${t.name}</div>
-            <div class="text-cp-yellow text-sm">+${t.income}€ / 10s</div>
-          </div>
-          <div>
-            ${t.controlled
-          ? '<span class="text-green-500 font-bold border border-green-500 px-2 py-1">✓ CONTROLLED</span>'
-          : rivalGang
-            ? `<span class="text-cp-red font-bold border border-cp-red px-2 py-1">⚔ ${rivalGang.name}</span>`
-            : `<span class="text-gray-500 font-bold border border-gray-500 px-2 py-1">UNCLAIMED</span>`
-        }
-          </div>
-        </div>
-      `;
+    overlay.appendChild(modal);
+    this.modalContainer.appendChild(overlay);
 
-      container.appendChild(div);
+    // Subscribe to store updates for live feedback
+    const unsubscribe = gameStore.subscribe(() => {
+      if (document.body.contains(modal)) {
+        this.renderModalContent(modal, territoryId);
+      }
     });
+
+    // Listeners (Close)
+    // Actually, we need to attach listeners AFTER render.
+    // Let's make renderModalContent handle the innerHTML, and we attach a global listener to the modal for delegation or re-attach.
+
+    // Better approach: Re-attach listeners in renderModalContent? 
+    // Or just delegate events to the modal container.
+
+    modal.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.id === 'close-territory' || target.closest('#close-territory')) {
+        this.mapInterface.cleanupTooltips();
+        unsubscribe(); // Stop listening
+        overlay.remove();
+      }
+
+      if (target.classList.contains('op-btn')) {
+        const opType = target.dataset.op;
+        this.handleOperationClick(opType as any, territoryId, overlay);
+      }
+
+
+    });
+  }
+
+  private renderModalContent(modal: HTMLElement, territoryId: number) {
+    const state = gameStore.get();
+    const territory = state.territories.find(t => t.id === territoryId);
+    if (!territory) return;
+
+    const isPlayer = territory.controlled;
+    const rival = territory.rivalGang ? rivalGangManager.getGangByTerritory(territory.id) : null;
+    const hexColor = isPlayer ? '#00F0FF' : (rival?.color || '#888');
+
+    modal.style.borderColor = hexColor;
+    modal.style.boxShadow = `0 0 40px ${hexColor}40`;
+
+    modal.innerHTML = `
+        <div class="bg-black/80 border-b-2 p-5 flex justify-between items-center shrink-0" style="border-color: ${hexColor}">
+            <div>
+                <h2 class="text-white m-0 text-3xl font-cyber font-bold uppercase" style="text-shadow: 0 0 10px ${hexColor}">${territory.name}</h2>
+                <div class="text-sm font-cyber text-gray-400">${territory.district}</div>
+            </div>
+            <div class="flex gap-2">
+
+                <button id="close-territory" class="bg-transparent border-2 text-white text-3xl w-10 h-10 cursor-pointer flex items-center justify-center font-bold hover:bg-white/10" style="border-color: ${hexColor}">&times;</button>
+            </div>
+        </div>
+
+        <div class="p-6 overflow-y-auto max-h-[70vh]">
+            <p class="text-white text-lg mb-6 font-cyber leading-relaxed border-l-4 pl-4 bg-black/30 p-4" style="border-color: ${hexColor}">
+                "${territory.description}"
+            </p>
+            
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-black/40 border border-gray-700 p-3">
+                    <div class="text-xs text-gray-400 font-cyber">CONTROL</div>
+                    <div class="text-xl font-bold font-cyber" style="color: ${hexColor}">
+                        ${isPlayer ? 'YOUR GANG' : (rival ? rival.name : 'UNCLAIMED')}
+                    </div>
+                </div>
+                <div class="bg-black/40 border border-gray-700 p-3">
+                    <div class="text-xs text-gray-400 font-cyber">INCOME</div>
+                    <div class="text-xl text-cp-yellow font-bold font-cyber">+${territory.income}€ / 1m</div>
+                </div>
+                <div class="bg-black/40 border border-gray-700 p-3">
+                    <div class="text-xs text-gray-400 font-cyber">DEFENSE</div>
+                    <div class="w-full h-2 bg-gray-800 mt-1">
+                        <div class="h-full bg-blue-500 transition-all duration-500" style="width: ${territory.defense}%"></div>
+                    </div>
+                    <div class="text-right text-xs text-blue-400 mt-1">${territory.defense}%</div>
+                </div>
+                <div class="bg-black/40 border border-gray-700 p-3">
+                    <div class="text-xs text-gray-400 font-cyber">HEAT</div>
+                    <div class="w-full h-2 bg-gray-800 mt-1">
+                        <div class="h-full bg-red-500 transition-all duration-500" style="width: ${territory.heat}%"></div>
+                    </div>
+                    <div class="text-right text-xs text-red-400 mt-1">${territory.heat}%</div>
+                </div>
+            </div>
+
+            <!-- Operations Section -->
+            <div class="border-t border-gray-700 pt-4">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-cp-cyan font-cyber text-lg">OPERATIONS</h3>
+                    ${!isPlayer ? `<div class="text-xs text-gray-400">INTEL: <span class="text-white">${territory.intel || 0}%</span></div>` : ''}
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <button class="op-btn cyber-btn text-sm py-2" data-op="SCOUT">SCOUT (50€)</button>
+                    ${isPlayer ? `
+                        <button class="op-btn cyber-btn text-sm py-2" data-op="FORTIFY">FORTIFY (200€)</button>
+                    ` : `
+                        <button class="op-btn cyber-btn text-sm py-2" data-op="SABOTAGE">SABOTAGE (300€)</button>
+                        <button class="op-btn cyber-btn text-sm py-2" data-op="RAID">RAID (100€)</button>
+                        <button class="op-btn cyber-btn text-sm py-2 bg-red-900/50 hover:bg-red-900" data-op="ASSAULT">ASSAULT (1000€)</button>
+                    `}
+                </div>
+            </div>
+            
+            <div id="active-ops" class="mt-4"></div>
+        </div>
+    `;
+
+    // Render Active Ops
+    const activeOpsContainer = modal.querySelector('#active-ops')!;
+    const ops = warfareManager.getActiveOperations(territory.id);
+
+    if (ops.length > 0) {
+      activeOpsContainer.innerHTML = '<div class="text-xs text-gray-500 mb-2">ACTIVE OPERATIONS</div>';
+      ops.forEach(op => {
+        const el = document.createElement('div');
+        el.className = 'bg-black/50 border border-gray-600 p-2 text-sm flex justify-between mb-1';
+        el.innerHTML = `
+                <span class="text-cp-cyan">${op.type}</span>
+                <span class="text-gray-400">${Math.ceil((op.endTime - Date.now()) / 1000)}s</span>
+              `;
+        activeOpsContainer.appendChild(el);
+      });
+    }
+  }
+
+  private handleOperationClick(type: 'SCOUT' | 'RAID' | 'ASSAULT' | 'FORTIFY' | 'SABOTAGE', territoryId: number, overlay: HTMLElement) {
+    const state = gameStore.get();
+    let cost = 0;
+    let duration = 10000;
+    let power = 100; // Base power
+
+    // Dynamic Power Calculation
+    const repBonus = state.rep * 10;
+    const armory = state.upgrades.find(u => u.id === 'ARMORY');
+    const armoryBonus = armory ? armory.level * 100 : 0;
+    const playerPower = 500 + repBonus + armoryBonus;
+
+    switch (type) {
+      case 'SCOUT': cost = 50; duration = 5000; break;
+      case 'SABOTAGE': cost = 300; duration = 10000; break;
+      case 'RAID': cost = 100; power = 200; duration = 15000; break; // Reduced cost to 100
+      case 'ASSAULT': cost = 1000; power = playerPower; duration = 30000; break; // Dynamic Power
+      case 'FORTIFY': cost = 200; duration = 10000; break;
+    }
+
+    if (state.eddies >= cost) {
+      addEddies(-cost);
+      warfareManager.startOperation(type, territoryId, 'PLAYER', power, duration);
+      audioManager.playPurchase();
+      this.showToast(`${type} OPERATION STARTED`, 'success');
+      overlay.remove();
+    } else {
+      this.showToast('INSUFFICIENT FUNDS', 'error');
+    }
+  }
+
+  private openTerritoryTutorial() {
+    const overlay = this.createOverlay();
+    const modal = document.createElement('div');
+    modal.className = 'bg-black/95 border border-cp-cyan p-8 max-w-[500px] text-white font-cyber relative animate-modalSlideIn shadow-[0_0_50px_rgba(0,240,255,0.2)] pointer-events-auto';
+
+    modal.innerHTML = `
+        <h2 class="text-2xl text-cp-cyan font-bold mb-4 border-b border-gray-700 pb-2">TERRITORY GUIDE</h2>
+        <div class="space-y-4 text-sm text-gray-300">
+            <div>
+                <strong class="text-white">INCOME:</strong> Controlled territories generate eddies every 60 seconds. High <span class="text-cp-yellow">STABILITY</span> ensures full payment.
+            </div>
+            <div>
+                <strong class="text-white">DEFENSE:</strong> Determines how hard it is to capture. Lower it by <span class="text-red-400">RAIDING</span> before you Assault.
+            </div>
+            <div>
+                <strong class="text-white">HEAT:</strong> High heat attracts Police Raids. It decays over time, but aggressive actions raise it.
+            </div>
+            <div class="border-t border-gray-700 pt-2 mt-2">
+                <strong class="text-cp-cyan">OPERATIONS:</strong>
+                <ul class="list-disc pl-5 mt-1 space-y-1">
+                    <li><span class="text-white">SCOUT:</span> Reveal details & gain Intel.</li>
+                    <li><span class="text-white">RAID:</span> Steal cash & lower Defense.</li>
+                    <li><span class="text-white">ASSAULT:</span> Capture the territory. Power scales with Rep & Armory.</li>
+                    <li><span class="text-white">FORTIFY:</span> Repair Defense.</li>
+                </ul>
+            </div>
+        </div>
+        <button class="mt-6 w-full bg-cp-cyan text-black font-bold py-2 hover:bg-white transition-colors">GOT IT</button>
+    `;
+
+    modal.querySelector('button')?.addEventListener('click', () => overlay.remove());
+    overlay.appendChild(modal);
+    this.modalContainer.appendChild(overlay);
+  }
+
+  private openHideoutModal() {
+    const state = gameStore.get();
+    const overlay = this.createOverlay();
+    const modal = document.createElement('div');
+    modal.className = 'bg-cp-bg border-[3px] border-cp-yellow shadow-[0_0_40px_rgba(255,215,0,0.5)] w-[90%] max-w-[800px] h-[80vh] flex flex-col animate-modalSlideIn pointer-events-auto';
+
+    modal.innerHTML = `
+        <div class="bg-black/80 border-b-2 border-cp-yellow p-5 flex justify-between items-center shrink-0">
+            <h2 class="text-cp-yellow m-0 text-3xl font-cyber font-bold uppercase">HIDEOUT UPGRADES</h2>
+            <button id="close-hideout" class="bg-transparent border-2 border-cp-yellow text-cp-yellow text-3xl w-10 h-10 cursor-pointer flex items-center justify-center font-bold hover:bg-cp-yellow hover:text-black">&times;</button>
+        </div>
+
+        <div class="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${state.upgrades.map(upgrade => {
+      const isMax = upgrade.level >= upgrade.maxLevel;
+      const cost = Math.floor(upgrade.cost * Math.pow(1.5, upgrade.level));
+      const canAfford = state.eddies >= cost;
+
+      return `
+                <div class="bg-black/40 border-2 ${isMax ? 'border-cp-cyan' : 'border-gray-600'} p-4 flex flex-col relative overflow-hidden group hover:border-cp-yellow transition-colors">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-xl font-cyber font-bold text-white">${upgrade.name}</h3>
+                        <div class="text-cp-yellow font-bold">LVL ${upgrade.level}/${upgrade.maxLevel}</div>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-4 h-10">${upgrade.description}</p>
+                    <div class="text-xs text-cp-cyan mb-4">${upgrade.effect}</div>
+                    
+                    <div class="mt-auto">
+                        ${isMax ?
+          `<button class="w-full py-2 bg-cp-cyan/20 text-cp-cyan font-bold border border-cp-cyan cursor-default">MAX LEVEL</button>` :
+          `<button class="upgrade-btn w-full py-2 ${canAfford ? 'bg-cp-yellow text-black hover:bg-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed'} font-bold font-cyber transition-colors" 
+                                data-id="${upgrade.id}" ${!canAfford ? 'disabled' : ''}>
+                                UPGRADE (${cost}€)
+                            </button>`
+        }
+                    </div>
+                </div>
+            `;
+    }).join('')}
+        </div>
+    `;
+
+    overlay.appendChild(modal);
+    this.modalContainer.appendChild(overlay);
+
+    modal.querySelector('#close-hideout')?.addEventListener('click', () => overlay.remove());
+
+    modal.querySelectorAll('.upgrade-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = (e.currentTarget as HTMLElement).dataset.id!;
+        this.handleUpgrade(id, overlay);
+      });
+    });
+  }
+
+  private handleUpgrade(upgradeId: string, overlay: HTMLElement) {
+    const state = gameStore.get();
+    const upgrade = state.upgrades.find(u => u.id === upgradeId);
+
+    if (!upgrade) return;
+    if (upgrade.level >= upgrade.maxLevel) return;
+
+    const cost = Math.floor(upgrade.cost * Math.pow(1.5, upgrade.level));
+
+    if (state.eddies >= cost) {
+      addEddies(-cost);
+      upgrade.level++;
+
+      // Apply immediate effects if any (most are passive checked elsewhere)
+      // But we need to update the store to trigger re-renders
+      gameStore.setKey('upgrades', [...state.upgrades]);
+
+      audioManager.playPurchase();
+      this.showToast(`${upgrade.name} UPGRADED TO LEVEL ${upgrade.level}`, 'success');
+
+      // Refresh modal
+      overlay.remove();
+      this.openHideoutModal();
+    } else {
+      this.showToast('INSUFFICIENT FUNDS', 'error');
+    }
+  }
+
+  private openDiplomacyTutorial() {
+    const overlay = this.createOverlay();
+    const modal = document.createElement('div');
+    modal.className = 'bg-black/95 border border-cp-yellow p-8 max-w-[500px] text-white font-cyber relative animate-modalSlideIn shadow-[0_0_50px_rgba(255,215,0,0.2)] pointer-events-auto';
+
+    modal.innerHTML = `
+        <h2 class="text-2xl text-cp-yellow font-bold mb-4 border-b border-gray-700 pb-2">DIPLOMACY GUIDE</h2>
+        <div class="space-y-4 text-sm text-gray-300">
+            <div>
+                <strong class="text-white">RELATIONSHIP:</strong> Ranges from -100 (WAR) to +100 (ALLY).
+                <ul class="list-disc pl-5 mt-1 space-y-1 text-xs">
+                    <li><span class="text-red-500">WAR (-50):</span> They will attack your turf.</li>
+                    <li><span class="text-green-400">FRIENDLY (+0):</span> Open to trade.</li>
+                    <li><span class="text-cp-cyan">ALLY (+80):</span> Will defend you.</li>
+                </ul>
+            </div>
+            <div>
+                <strong class="text-white">PACTS:</strong>
+                <ul class="list-disc pl-5 mt-1 space-y-1 text-xs">
+                    <li><span class="text-cp-yellow">NON-AGGRESSION:</span> Prevents attacks for a duration.</li>
+                    <li><span class="text-cp-cyan">ALLIANCE:</span> Mutual defense and shared intel.</li>
+                </ul>
+            </div>
+            <div class="border-t border-gray-700 pt-2 mt-2">
+                <strong class="text-cp-yellow">ACTIONS:</strong>
+                <ul class="list-disc pl-5 mt-1 space-y-1">
+                    <li><span class="text-white">BRIBE:</span> Pay eddies to improve relations.</li>
+                    <li><span class="text-white">TRUCE:</span> End a war immediately.</li>
+                    <li><span class="text-white">ALLIANCE:</span> Form a pact for mutual benefit.</li>
+                </ul>
+            </div>
+        </div>
+        <button class="mt-6 w-full bg-cp-yellow text-black font-bold py-2 hover:bg-white transition-colors">GOT IT</button>
+    `;
+
+    modal.querySelector('button')?.addEventListener('click', () => overlay.remove());
+    overlay.appendChild(modal);
+    this.modalContainer.appendChild(overlay);
   }
 
   private renderGangsTab(container: Element) {
+    const gangs = rivalGangManager.getGangInfo();
     container.innerHTML = '';
-    const state = gameStore.get();
 
+    // Add Header with Tutorial Button
     const header = document.createElement('div');
-    header.className = 'mb-4';
-    header.innerHTML = `<h3 class="text-cp-yellow font-cyber text-xl mb-2">${state.gangName.toUpperCase()} VS RIVALS</h3><p class="text-gray-400">Expand your territory and eliminate rivals</p>`;
+    header.className = 'flex justify-between items-center mb-4 border-b border-gray-700 pb-2';
+    header.innerHTML = `
+        <h3 class="text-cp-yellow font-cyber text-2xl uppercase tracking-wider">RIVAL GANGS</h3>
+        <button id="diplomacy-help-btn" class="bg-transparent border border-gray-500 text-gray-400 w-8 h-8 rounded-full flex items-center justify-center hover:bg-white/10 hover:text-white transition-colors">?</button>
+    `;
     container.appendChild(header);
 
+    header.querySelector('#diplomacy-help-btn')?.addEventListener('click', () => this.openDiplomacyTutorial());
 
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
 
-    // --- Unclaimed Territories Section Removed ---
-    // All territories are now owned by rival gangs at start
+    gangs.forEach(gang => {
+      const card = document.createElement('div');
+      card.className = 'bg-black/40 border-2 p-4 cursor-pointer hover:bg-white/5 transition-colors';
+      card.style.borderColor = gang.color;
 
+      // Relationship Status
+      let relStatus = 'NEUTRAL';
+      let relColor = 'text-gray-400';
+      if (gang.relationship <= -50) { relStatus = 'WAR'; relColor = 'text-red-500'; }
+      else if (gang.relationship < 0) { relStatus = 'HOSTILE'; relColor = 'text-orange-500'; }
+      else if (gang.relationship >= 80) { relStatus = 'ALLY'; relColor = 'text-cp-cyan'; }
+      else if (gang.relationship > 0) { relStatus = 'FRIENDLY'; relColor = 'text-green-400'; }
 
-    // --- Rival Gangs Section ---
-    const gangsHeader = document.createElement('div');
-    gangsHeader.className = 'text-cp-red font-cyber text-sm mb-2 mt-6 border-b border-cp-red/50 pb-1';
-    gangsHeader.textContent = 'RIVAL GANGS';
-    container.appendChild(gangsHeader);
-
-    const gangs = rivalGangManager.getGangInfo();
-    console.log('Rendering Gangs Tab. Gangs:', gangs);
-
-    if (gangs.length === 0) {
-      const notice = document.createElement('div');
-      notice.className = 'text-center text-green-500 font-cyber py-10 text-xl';
-      notice.textContent = 'NO RIVAL GANGS REMAIN. YOU CONTROL NIGHT CITY!';
-      container.appendChild(notice);
-      return;
-    }
-
-    gangs.forEach((gang, index) => {
-      const gangCard = document.createElement('div');
-      gangCard.className = 'bg-black/60 border-2 border-cp-red p-4 mb-4';
-      gangCard.style.animationDelay = `${index * 0.1}s`;
-
-      gangCard.innerHTML = `
-        <div class="flex justify-between items-start mb-3">
-          <div>
-            <div class="text-cp-red font-bold text-xl font-cyber">${gang.name}</div>
-            <div class="text-gray-400 text-sm font-cyber">[${gang.personality.toUpperCase()}]</div>
-          </div>
-          <div class="text-sm text-gray-400">
-            <span class="mr-4">⚔ ${gang.strength}</span>
-            <span>🏴 ${gang.territories} territories</span>
-          </div>
-        </div>
-      `;
-
-      container.appendChild(gangCard);
-
-      // Show territories controlled by this gang
-      state.territories.forEach(territory => {
-        const gangObj = rivalGangManager.getGangByTerritory(territory.id);
-        if (gangObj && gangObj.name === gang.name) {
-          const territoryCard = document.createElement('div');
-          territoryCard.className = 'bg-black/40 border-l-4 border-cp-red p-3 mb-2 ml-4';
-
-          territoryCard.innerHTML = `
-            <div class="flex justify-between items-center">
-              <div>
-                <div class="text-cp-cyan font-bold font-cyber">${territory.name}</div>
-                <div class="text-cp-yellow text-sm">+${territory.income}€ / 10s</div>
-              </div>
-              <button class="cyber-btn text-xs attack-btn" data-id="${territory.id}">ATTACK</button>
+      card.innerHTML = `
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="text-xl font-cyber font-bold text-white" style="text-shadow: 0 0 5px ${gang.color}">${gang.name}</h3>
+                <div class="text-sm font-bold ${relColor}">${relStatus} (${gang.relationship})</div>
             </div>
-          `;
+            <div class="grid grid-cols-2 gap-2 text-sm text-gray-300 mb-3">
+                <div>STR: ${gang.strength}</div>
+                <div>TURF: ${gang.territories}</div>
+                <div>AGGR: ${gang.personality.toUpperCase()}</div>
+            </div>
+            <div class="w-full bg-gray-800 h-1 mt-2">
+                <div class="h-full transition-all" style="width: ${Math.max(0, gang.relationship + 100) / 2}%; background-color: ${gang.color}"></div>
+            </div>
+        `;
 
-          const attackBtn = territoryCard.querySelector('.attack-btn');
-          attackBtn?.addEventListener('click', () => {
-            audioManager.playClick();
-            this.showAttackDialog(territory.id, gang.name, gangObj.strength);
-          });
-
-          container.appendChild(territoryCard);
-        }
+      card.addEventListener('click', () => {
+        this.openDiplomacyModal(gang.id);
       });
+
+      grid.appendChild(card);
     });
+
+    container.appendChild(grid);
   }
 
-  private showAttackDialog(territoryId: number, gangName: string, gangStrength: number) {
-    const state = gameStore.get();
-    const availableMembers = state.members.filter(m => m.status === 'IDLE' && !m.injured);
+  private openDiplomacyModal(gangId: string) {
+    const gang = rivalGangManager.getGangById(gangId);
+    if (!gang) return;
 
-    if (availableMembers.length === 0) {
-      this.showToast('NO AVAILABLE MEMBERS FOR ATTACK!', 'error');
-      return;
-    }
-
-    const territory = state.territories.find(t => t.id === territoryId)!;
-
-    const dialog = this.createOverlay();
-
-    // Prevent clicks from passing through
-    dialog.addEventListener('click', (e) => {
-      if (e.target === dialog) {
-        dialog.remove();
-      }
-    });
-
+    const overlay = this.createOverlay();
     const modal = document.createElement('div');
-    modal.className = 'bg-cp-bg border-[3px] border-cp-red shadow-[0_0_40px_rgba(255,0,60,0.5)] w-[90%] max-w-[600px] max-h-[85vh] flex flex-col animate-modalSlideIn pointer-events-auto';
+    const color = gang.color || '#fff';
+
+    modal.className = `bg-cp-bg border-[3px] shadow-[0_0_40px_rgba(0,0,0,0.5)] w-[90%] max-w-[600px] flex flex-col animate-modalSlideIn pointer-events-auto`;
+    modal.style.borderColor = color;
+    modal.style.boxShadow = `0 0 30px ${color}40`;
 
     modal.innerHTML = `
-      <div class="bg-cp-red/10 border-b-2 border-cp-red p-5 flex justify-between items-center shrink-0">
-        <h2 class="text-cp-red m-0 text-2xl drop-shadow-[0_0_10px_var(--cp-red)] font-cyber font-bold">ATTACK ${territory.name}</h2>
-        <button id="close-attack-dialog" class="bg-transparent border-2 border-cp-red text-cp-red text-3xl w-10 h-10 cursor-pointer transition-all duration-300 hover:bg-cp-red hover:text-white hover:rotate-90 flex items-center justify-center font-bold">&times;</button>
-      </div>
-
-      <div class="p-5 flex-1 overflow-y-auto">
-        <p class="text-gray-400 mb-4">Target: ${gangName} (Strength: ${gangStrength})</p>
-
-        <div class="bg-cp-red/5 border border-cp-red/30 p-3 mb-4">
-          <div class="text-cp-red text-xs font-bold mb-1">SUCCESS CHANCE</div>
-          <div class="text-white text-2xl font-cyber" id="success-chance">0%</div>
+        <div class="bg-black/80 border-b-2 p-5 flex justify-between items-center shrink-0" style="border-color: ${color}">
+            <h2 class="text-white m-0 text-3xl font-cyber font-bold uppercase" style="text-shadow: 0 0 10px ${color}">${gang.name}</h2>
+            <button id="close-diplomacy" class="bg-transparent border-2 text-white text-3xl w-10 h-10 cursor-pointer flex items-center justify-center font-bold hover:bg-white/10" style="border-color: ${color}">&times;</button>
         </div>
 
-        <h3 class="text-cp-yellow mb-3">SELECT CREW</h3>
-        <div id="attack-crew-list" class="space-y-2 max-h-[300px] overflow-y-auto mb-4"></div>
+        <div class="p-6">
+            <div class="flex items-center gap-4 mb-6 bg-black/30 p-4 border-l-4" style="border-color: ${color}">
+                <div class="text-4xl">🤝</div>
+                <div>
+                    <div class="text-gray-400 text-sm font-cyber">RELATIONSHIP</div>
+                    <div class="text-2xl font-bold text-white">${gang.relationship} / 100</div>
+                </div>
+            </div>
 
-        <div class="flex gap-2">
-          <button id="confirm-attack" class="cyber-btn flex-1">ATTACK</button>
-          <button id="cancel-attack" class="cyber-btn flex-1">CANCEL</button>
+            <h3 class="text-cp-cyan font-cyber text-lg mb-3">DIPLOMATIC ACTIONS</h3>
+            <div class="space-y-3">
+                <button class="dip-btn cyber-btn w-full py-3 flex justify-between items-center px-4" data-action="BRIBE">
+                    <span>BRIBE (Improve Relations)</span>
+                    <span class="text-cp-yellow font-bold">500€</span>
+                </button>
+                <button class="dip-btn cyber-btn w-full py-3 flex justify-between items-center px-4" data-action="TRUCE">
+                    <span>OFFER TRUCE (End War)</span>
+                    <span class="text-cp-yellow font-bold">1000€</span>
+                </button>
+                <button class="dip-btn cyber-btn w-full py-3 flex justify-between items-center px-4 border-cp-cyan text-cp-cyan hover:bg-cp-cyan/10" data-action="ALLIANCE">
+                    <span>PROPOSE ALLIANCE</span>
+                    <span class="text-cp-yellow font-bold">2000€</span>
+                </button>
+            </div>
         </div>
-      </div>
     `;
 
-    dialog.appendChild(modal);
-    document.body.appendChild(dialog);
+    overlay.appendChild(modal);
+    this.modalContainer.appendChild(overlay);
 
-    const selectedMembers: number[] = [];
-    const crewList = modal.querySelector('#attack-crew-list')!;
-    const chanceEl = modal.querySelector('#success-chance') as HTMLElement;
+    modal.querySelector('#close-diplomacy')?.addEventListener('click', () => overlay.remove());
 
-    const updateChance = () => {
-      const attackers = state.members.filter(m => selectedMembers.includes(m.id));
-      const playerPower = attackers.reduce((sum, m) => sum + 10 + (m.stats.cool * 2) + (m.stats.reflex * 2) + (m.level * 5), 0);
-
-      let successChance = 0;
-      if (playerPower > 0) {
-        const ratio = playerPower / gangStrength;
-        if (ratio >= 1.5) successChance = 100;
-        else if (ratio <= 0.5) successChance = 0;
-        else successChance = Math.round(((ratio - 0.5) / 1.0) * 100);
-      }
-
-      chanceEl.textContent = `${successChance}%`;
-      chanceEl.style.color = successChance >= 80 ? 'lime' : successChance >= 50 ? 'var(--color-cp-yellow)' : 'var(--color-cp-red)';
-    };
-
-    availableMembers.forEach(member => {
-      const memberEl = document.createElement('label');
-      memberEl.className = 'flex items-center gap-3 p-2 bg-black/40 border border-cp-cyan/30 cursor-pointer hover:bg-cp-cyan/10';
-
-      memberEl.innerHTML = `
-        <input type="checkbox" value="${member.id}" class="w-5 h-5" data-power="${10 + (member.stats.cool * 2) + (member.stats.reflex * 2) + (member.level * 5)}">
-        <span class="flex-1 font-cyber">${member.name} (LVL ${member.level} - COOL:${member.stats.cool} REF:${member.stats.reflex})</span>
-      `;
-
-      const checkbox = memberEl.querySelector('input') as HTMLInputElement;
-      checkbox.addEventListener('change', () => {
-        if (checkbox.checked) {
-          selectedMembers.push(member.id);
-        } else {
-          const index = selectedMembers.indexOf(member.id);
-          if (index > -1) selectedMembers.splice(index, 1);
-        }
-        updateChance();
+    modal.querySelectorAll('.dip-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const action = (e.currentTarget as HTMLElement).dataset.action;
+        this.handleDiplomacyAction(action as any, gang.id, overlay);
       });
-
-      crewList.appendChild(memberEl);
-    });
-
-    modal.querySelector('#close-attack-dialog')?.addEventListener('click', () => dialog.remove());
-    modal.querySelector('#cancel-attack')?.addEventListener('click', () => dialog.remove());
-
-    modal.querySelector('#confirm-attack')?.addEventListener('click', () => {
-      audioManager.playClick();
-      if (selectedMembers.length === 0) {
-        this.showToast('SELECT AT LEAST ONE MEMBER!', 'error');
-        return;
-      }
-
-      const result = attackTerritory(territoryId, selectedMembers);
-
-      if (result.success) {
-        audioManager.playMissionComplete();
-        this.showToast(result.message!, 'success');
-        if ('loot' in result && result.loot) {
-          setTimeout(() => this.showToast(`LOOTED ${result.loot}€!`, 'success'), 500);
-        }
-      } else {
-        this.showToast(result.message!, 'error');
-      }
-
-      dialog.remove();
-      this.modalContainer.innerHTML = '';
-      this.openMissionBoard();
     });
   }
 
+  private handleDiplomacyAction(action: 'BRIBE' | 'TRUCE' | 'ALLIANCE', gangId: string, overlay: HTMLElement) {
+    const state = gameStore.get();
+    const gang = rivalGangManager.getGangById(gangId);
+    if (!gang) return;
 
+    switch (action) {
+      case 'BRIBE':
+        if (state.eddies >= 500) {
+          addEddies(-500);
+          rivalGangManager.changeRelationship(gangId, 10);
+          audioManager.playPurchase();
+          this.showToast(`BRIBED ${gang.name}`, 'success');
+          overlay.remove();
+        } else {
+          this.showToast('INSUFFICIENT FUNDS', 'error');
+        }
+        break;
+      case 'TRUCE':
+        if (state.eddies >= 1000) {
+          if (gang.relationship >= 0) {
+            this.showToast('ALREADY AT PEACE', 'warning');
+            return;
+          }
+          addEddies(-1000);
+          gang.relationship = 0;
+          audioManager.playLevelUp();
+          this.showToast(`TRUCE SIGNED WITH ${gang.name}`, 'success');
+          overlay.remove();
+        } else {
+          this.showToast('INSUFFICIENT FUNDS', 'error');
+        }
+        break;
+      case 'ALLIANCE':
+        if (state.eddies >= 2000 && state.rep >= 80) {
+          if (gang.relationship < 80) {
+            this.showToast('RELATIONSHIP TOO LOW', 'warning');
+            return;
+          }
+          addEddies(-2000);
+          rivalGangManager.setAlliance(gangId, true);
+          audioManager.playLevelUp();
+          this.showToast(`ALLIANCE FORMED WITH ${gang.name}!`, 'success');
+          overlay.remove();
+        } else {
+          this.showToast('REQ: 2000€, 80 REP, 80+ REL', 'error');
+        }
+        break;
+    }
+  }
+
+  private openTerritoryTutorial() {
+    const overlay = this.createOverlay();
+    const modal = document.createElement('div');
+    modal.className = 'bg-cyber border-2 border-cp-cyan max-w-3xl mx-auto my-12 shadow-[0_0_30px_rgba(0,240,255,0.4)]';
+    modal.innerHTML = `
+        <div class="flex justify-between items-center p-4 bg-cp-cyan/10 border-b-2 border-cp-cyan">
+            <h2 class="text-2xl font-cyber text-cp-cyan uppercase tracking-wider">Territory Warfare Guide</h2>
+            <button id="close-tutorial" class="bg-transparent border-2 border-cp-cyan text-cp-cyan text-3xl w-10 h-10 cursor-pointer flex items-center justify-center font-bold hover:bg-cp-cyan hover:text-black transition-colors">&times;</button>
+        </div>
+
+        <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+            <!-- Operations -->
+            <div class="bg-black/30 p-4 border-l-4 border-cp-yellow">
+                <h3 class="text-cp-yellow font-cyber text-xl mb-2 uppercase">Operations</h3>
+                <div class="space-y-2 text-gray-300">
+                    <div><span class="text-cp-cyan font-bold">SCOUT</span> - Gather intel on territories. Higher intel reveals Defense, Income, Garrison strength, and weaknesses.</div>
+                    <div><span class="text-cp-cyan font-bold">SABOTAGE</span> - Weaken defenses covertly with minimal heat gain.</div>
+                    <div><span class="text-cp-cyan font-bold">RAID</span> - Quick attack to steal eddies and weaken territory (increases heat).</div>
+                    <div><span class="text-cp-cyan font-bold">ASSAULT</span> - Full attack to capture territory. Requires high power and generates massive heat.</div>
+                    <div><span class="text-cp-cyan font-bold">FORTIFY</span> - Strengthen your territory's defenses.</div>
+                </div>
+            </div>
+
+            <!-- Intel System -->
+            <div class="bg-black/30 p-4 border-l-4 border-blue-400">
+                <h3 class="text-blue-400 font-cyber text-xl mb-2 uppercase">Intel System</h3>
+                <div class="space-y-2 text-gray-300">
+                    <div>Intel unlocks progressive information about territories:</div>
+                    <div class="ml-4">• <span class="text-cp-cyan">25%</span> - Defense & Stability</div>
+                    <div class="ml-4">• <span class="text-cp-cyan">50%</span> - Income & Building Slots</div>
+                    <div class="ml-4">• <span class="text-cp-cyan">75%</span> - Enemy Garrison Strength</div>
+                    <div class="ml-4">• <span class="text-cp-cyan">100%</span> - Critical Weakness (+10% combat bonus)</div>
+                </div>
+            </div>
+
+            <!-- Diplomacy -->
+            <div class="bg-black/30 p-4 border-l-4 border-purple-400">
+                <h3 class="text-purple-400 font-cyber text-xl mb-2 uppercase">Diplomacy</h3>
+                <div class="space-y-2 text-gray-300">
+                    <div>Manage relationships with rival gangs in the "Gangs" tab:</div>
+                    <div class="ml-4">• <span class="text-cp-cyan">BRIBE</span> - Improve relations (500€)</div>
+                    <div class="ml-4">• <span class="text-cp-cyan">DEMAND TRIBUTE</span> - Extract money from weaker gangs</div>
+                    <div class="ml-4">• <span class="text-cp-cyan">BUY INTEL</span> - Purchase intelligence on territories (200€)</div>
+                    <div class="ml-4">• <span class="text-cp-cyan">SIGN PACT</span> - Non-aggression agreement (5 min duration)</div>
+                </div>
+            </div>
+
+            <!-- Events -->
+            <div class="bg-black/30 p-4 border-l-4 border-cp-yellow">
+                <h3 class="text-cp-yellow font-cyber text-xl mb-2 uppercase">Global Events</h3>
+                <div class="space-y-2 text-gray-300">
+                    <div>Watch for random events that affect gameplay:</div>
+                    <div class="ml-4">• <span class="text-cp-cyan">POLICE CRACKDOWN</span> - Heat rises faster</div>
+                    <div class="ml-4">• <span class="text-cp-cyan">BLACK MARKET BOOM</span> - Increased income</div>
+                    <div class="ml-4">• <span class="text-cp-cyan">GANG WARFARE</span> - Rivals distracted</div>
+                </div>
+            </div>
+
+            <!-- Heat & Police -->
+            <div class="bg-black/30 p-4 border-l-4 border-red-500">
+                <h3 class="text-red-500 font-cyber text-xl mb-2 uppercase">Heat & Police</h3>
+                <div class="space-y-2 text-gray-300">
+                    <div><span class="text-cp-cyan font-bold">HEAT</span> - Increases with aggressive operations. High heat (80+) triggers police raids.</div>
+                    <div><span class="text-cp-cyan font-bold">POLICE RAIDS</span> - Damage defense/stability and cost 500€ in bribes. Heat drops after raid.</div>
+                    <div>Manage heat carefully to avoid costly interference.</div>
+                </div>
+            </div>
+
+            <!-- Tips -->
+            <div class="bg-black/30 p-4 border-l-4 border-green-400">
+                <h3 class="text-green-400 font-cyber text-xl mb-2 uppercase">Strategic Tips</h3>
+                <div class="space-y-2 text-gray-300">
+                    <div>• Scout before assaulting to gain combat bonuses</div>
+                    <div>• Use sabotage to weaken targets without raising heat</div>
+                    <div>• Build relationships before demanding tribute or requesting proxy wars</div>
+                    <div>• Monitor global events for strategic opportunities</div>
+                    <div>• Fortify territories regularly to prevent enemy captures</div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    overlay.appendChild(modal);
+    this.modalContainer.appendChild(overlay);
+
+    modal.querySelector('#close-tutorial')?.addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+  }
 }
+

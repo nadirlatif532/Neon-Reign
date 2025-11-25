@@ -102,23 +102,6 @@ body {
     box-shadow: 0 0 15px var(--color-cp-yellow);
 }
 
-.scanlines {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(to bottom,
-            rgba(255, 255, 255, 0),
-            rgba(255, 255, 255, 0) 50%,
-            rgba(0, 0, 0, 0.2) 50%,
-            rgba(0, 0, 0, 0.2));
-    background-size: 100% 4px;
-    pointer-events: none;
-    z-index: 9999;
-    opacity: 0.6;
-}
-
 /* Animations */
 @keyframes slideIn {
     from {
@@ -215,182 +198,6 @@ body {
 
 .animate-glitch {
     animation: glitch 0.2s infinite;
-}
-
-.animate-modalSlideIn {
-    animation: modalSlideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-}
-
-.fill-mode-forwards {
-    animation-fill-mode: forwards;
-}
-
-/* Tutorial Overlay & Panel */
-.tutorial-hidden {
-    display: none !important;
-}
-
-#tutorial-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.95);
-    z-index: 99999;
-    pointer-events: auto;
-    animation: fadeIn 0.3s ease-out;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-#tutorial-panel {
-    width: 90%;
-    max-width: 700px;
-    max-height: 80vh;
-    background: var(--color-cp-bg);
-    border: 3px solid var(--color-cp-cyan);
-    box-shadow: 0 0 40px rgba(0, 240, 255, 0.5);
-    display: flex;
-    flex-direction: column;
-    animation: modalSlideIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    pointer-events: auto;
-}
-
-.tutorial-header {
-    background: rgba(0, 240, 255, 0.1);
-    border-bottom: 2px solid var(--color-cp-cyan);
-    padding: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.tutorial-header h2 {
-    color: var(--color-cp-cyan);
-    margin: 0;
-    font-size: 1.8rem;
-    text-shadow: 0 0 10px var(--color-cp-cyan);
-    font-family: var(--font-family-cyber);
-}
-
-#tutorial-close-btn {
-    background: transparent;
-    border: 2px solid var(--color-cp-red);
-    color: var(--color-cp-red);
-    font-size: 2rem;
-    width: 40px;
-    height: 40px;
-    cursor: pointer;
-    transition: all 0.3s;
-    line-height: 1;
-    font-weight: bold;
-}
-
-#tutorial-close-btn:hover {
-    background: var(--color-cp-red);
-    color: #fff;
-    transform: rotate(90deg);
-}
-
-.tutorial-body {
-    padding: 20px;
-    overflow-y: auto;
-    flex: 1;
-    color: #fff;
-}
-
-.tutorial-body h3 {
-    color: var(--color-cp-yellow);
-    text-align: center;
-    margin-top: 0;
-    font-size: 1.3rem;
-    text-shadow: 0 0 10px var(--color-cp-yellow);
-    font-family: var(--font-family-cyber);
-}
-
-.tutorial-body h4 {
-    color: var(--color-cp-cyan);
-    margin-top: 20px;
-    margin-bottom: 10px;
-    font-size: 1.1rem;
-    font-family: var(--font-family-cyber);
-}
-
-.tutorial-body p {
-    line-height: 1.6;
-    margin: 10px 0;
-    color: #ccc;
-}
-
-.tutorial-body ul {
-    list-style: none;
-    padding: 0;
-    margin: 15px 0;
-}
-
-.tutorial-body li {
-    padding: 10px;
-    margin: 8px 0;
-    border-left: 3px solid var(--color-cp-cyan);
-    line-height: 1.5;
-    background: rgba(0, 0, 0, 0.3);
-}
-
-.tutorial-body .highlight {
-    color: var(--color-cp-yellow);
-    font-weight: bold;
-}
-
-.tutorial-body .tip {
-    background: rgba(252, 238, 10, 0.1);
-    border: 1px solid var(--color-cp-yellow);
-    padding: 10px;
-    margin: 20px 0;
-    color: var(--color-cp-yellow);
-    font-style: italic;
-    text-align: center;
-}
-
-#tutorial-ok-btn {
-    width: 100%;
-    margin-top: 20px;
-    padding: 12px;
-    font-size: 1.1rem;
-}
-
-.tutorial-body::-webkit-scrollbar {
-    width: 6px;
-}
-
-.tutorial-body::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.5);
-}
-
-.tutorial-body::-webkit-scrollbar-thumb {
-    background: var(--color-cp-yellow);
-    border-radius: 3px;
-}
-
-.tutorial-body::-webkit-scrollbar-thumb:hover {
-    background: var(--color-cp-cyan);
-}
-
-/* Settings Overlay */
-#settings-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.95);
-    z-index: 99999;
-    pointer-events: auto;
-    animation: fadeIn 0.3s ease-out;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .animate-modalSlideIn {
@@ -706,4 +513,87 @@ body {
     #footer-log .text-xs {
         font-size: 0.65rem;
     }
+}
+
+/* --- Visual Polish & Effects --- */
+
+/* Custom Cursor */
+body {
+    cursor: crosshair;
+}
+
+/* CRT Scanlines */
+.scanlines {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(to bottom,
+            rgba(255, 255, 255, 0),
+            rgba(255, 255, 255, 0) 50%,
+            rgba(0, 0, 0, 0.2) 50%,
+            rgba(0, 0, 0, 0.2));
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 9998;
+    /* Below overlays but above game */
+    opacity: 0.3;
+    animation: scanlineScroll 10s linear infinite;
+}
+
+.crt-vignette {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(circle,
+            rgba(0, 0, 0, 0) 60%,
+            rgba(0, 0, 0, 0.6) 100%);
+    pointer-events: none;
+    z-index: 9998;
+}
+
+@keyframes scanlineScroll {
+    0% {
+        background-position: 0 0;
+    }
+
+    100% {
+        background-position: 0 100%;
+    }
+}
+
+/* Click Particles */
+.click-particle {
+    position: fixed;
+    width: 6px;
+    height: 6px;
+    background-color: var(--color-cp-cyan);
+    pointer-events: none;
+    z-index: 99999;
+    box-shadow: 0 0 5px var(--color-cp-cyan);
+    animation: particleExplode 0.5s ease-out forwards;
+    --x-offset: 10px;
+    --y-offset: -10px;
+}
+
+@keyframes particleExplode {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(calc(-50% + var(--x-offset)), calc(-50% + var(--y-offset))) scale(0);
+        opacity: 0;
+    }
+}
+
+/* Floating Text */
+.floating-text {
+    text-shadow: 2px 2px 0px #000;
+    pointer-events: none;
+    white-space: nowrap;
 }

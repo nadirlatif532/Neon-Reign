@@ -14,7 +14,8 @@ export class CityScene extends Phaser.Scene {
         this.isMobile = this.scale.width <= 768;
 
         // Start with static background image for instant load
-        const bgKey = this.isMobile ? 'city_bg_mobile' : 'city_bg_user';
+        // Fallback to mobile bg if user bg is missing/removed
+        const bgKey = 'city_bg_mobile';
         this.bgImage = this.add.image(this.scale.width / 2, this.scale.height / 2, bgKey);
 
         // Scale to cover screen
@@ -100,15 +101,35 @@ export class CityScene extends Phaser.Scene {
 
         zone.on('pointerover', () => {
             zone.setFillStyle(tint, 0.7);
+            this.tweens.add({
+                targets: container,
+                scale: 1.1,
+                duration: 200,
+                ease: 'Back.easeOut'
+            });
+            // Play hover sound if available (assuming audioManager is global or imported)
+            // We need to import audioManager first, let's assume it's available or we'll add the import
+            import('@/managers/AudioManager').then(({ audioManager }) => {
+                audioManager.playHover();
+            });
         });
 
         zone.on('pointerout', () => {
             zone.setFillStyle(tint, 0.3);
+            this.tweens.add({
+                targets: container,
+                scale: 1,
+                duration: 200,
+                ease: 'Sine.easeOut'
+            });
         });
 
         zone.on('pointerdown', () => {
             console.log(`Clicked ${type}`);
             window.dispatchEvent(new CustomEvent('building-click', { detail: { type } }));
+
+            // Click effect
+            this.cameras.main.shake(50, 0.0002);
         });
     }
 
