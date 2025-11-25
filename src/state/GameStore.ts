@@ -712,45 +712,7 @@ export const removeMission = (missionId: number) => {
     gameStore.setKey('availableMissions', current.filter(m => m.id !== missionId));
 }
 
-export const captureTerritory = (territoryId: number): boolean => {
-    const state = gameStore.get();
-    const territory = state.territories.find(t => t.id === territoryId);
 
-    if (territory && !territory.controlled && !territory.rivalGang) {
-        const cost = territory.income * 10;
-        if (state.eddies >= cost) {
-            addEddies(-cost);
-            territory.controlled = true;
-            gameStore.setKey('territories', [...state.territories]);
-            return true;
-        }
-    }
-    return false;
-};
-
-
-
-export const attackTerritory = (territoryId: number, memberIds: number[]) => {
-    const state = gameStore.get();
-    const attackers = state.members.filter(m => memberIds.includes(m.id));
-
-    const unavailable = attackers.filter(m => m.status !== 'IDLE' || m.injured);
-    if (unavailable.length > 0) {
-        return { success: false, message: 'Some members are unavailable!' };
-    }
-
-    const result = rivalGangManager.attackTerritory(territoryId, attackers);
-
-    if (result.success && result.loot) {
-        addEddies(result.loot);
-        addRep(10);
-    }
-
-    gameStore.setKey('territories', [...state.territories]);
-    gameStore.setKey('members', [...state.members]);
-
-    return result;
-};
 
 export const addEncounter = (encounterId: string, x: number, y: number, duration: number) => {
     const state = gameStore.get();

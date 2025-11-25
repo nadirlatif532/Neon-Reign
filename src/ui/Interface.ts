@@ -128,7 +128,11 @@ export class Interface {
           <button id="tutorial-btn" class="cyber-btn text-xs" title="Show Tutorial">?</button>
         </div>
       </header>
+      <div id="active-ops-panel" class="absolute top-20 right-4 w-64 flex flex-col gap-2 pointer-events-auto"></div>
     `;
+
+    // Start Active Ops Ticker
+    setInterval(() => this.updateActiveOpsPanel(), 1000);
 
     // Add tutorial button listener
     setTimeout(() => {
@@ -143,6 +147,45 @@ export class Interface {
         this.openSettingsPanel();
       });
     }, 100);
+  }
+
+  private updateActiveOpsPanel() {
+    const container = document.getElementById('active-ops-panel');
+    if (!container) return;
+
+    const ops = warfareManager.getActiveOperations();
+    if (ops.length === 0) {
+      container.innerHTML = '';
+      return;
+    }
+
+    const state = gameStore.get();
+
+    container.innerHTML = ops.map(op => {
+      const territory = state.territories.find(t => t.id === op.targetTerritoryId);
+      const territoryName = territory ? territory.name : `TERRITORY ${op.targetTerritoryId}`;
+      const timeLeft = Math.max(0, Math.ceil((op.endTime - Date.now()) / 1000));
+      const duration = op.endTime - op.startTime;
+      const progress = Math.min(100, Math.max(0, 100 - ((timeLeft * 1000) / duration) * 100));
+
+      let color = 'text-white';
+      if (op.type === 'ASSAULT') color = 'text-red-500';
+      else if (op.type === 'SCOUT') color = 'text-cp-cyan';
+      else if (op.type === 'RAID') color = 'text-orange-500';
+
+      return `
+            <div class="bg-black/90 border border-cp-cyan p-2 text-xs font-cyber shadow-[0_0_10px_rgba(0,0,0,0.5)] animate-fadeIn">
+                <div class="flex justify-between mb-1">
+                    <span class="${color} font-bold">${op.type}</span>
+                    <span class="text-cp-yellow">${timeLeft}s</span>
+                </div>
+                <div class="w-full bg-gray-800 h-1 mb-1">
+                    <div class="h-full bg-cp-cyan transition-all duration-1000" style="width: ${progress}%"></div>
+                </div>
+                <div class="text-[10px] text-gray-400 truncate">${territoryName}</div>
+            </div>
+        `;
+    }).join('');
   }
 
   private openSettingsPanel() {

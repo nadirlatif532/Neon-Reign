@@ -20,7 +20,6 @@ export class RivalGangManager {
     private gangs: RivalGang[] = [];
     private initialized = false;
     private gameStore: any;
-    private aiInterval: number | null = null;
 
     constructor() {
     }
@@ -91,7 +90,7 @@ export class RivalGangManager {
     }
 
     private startAI() {
-        this.aiInterval = window.setInterval(() => {
+        window.setInterval(() => {
             this.gangs.forEach(gang => {
                 if (Math.random() < gang.aggression) {
                     this.gangAction(gang);
@@ -281,7 +280,7 @@ export class RivalGangManager {
             if (roll < 0.1 && gang.resources >= 1000) return { type: 'ASSAULT', targetId: target.id };
         }
 
-        if (gang.resources >= 50) return { type: 'SCOUT', targetId: target.id };
+        if (gang.resources >= 50 && Math.random() < 0.3) return { type: 'SCOUT', targetId: target.id };
 
         return null;
     }
@@ -367,7 +366,7 @@ export class RivalGangManager {
         }
     }
 
-    improveRelations(gangId: string, cost: number): boolean {
+    improveRelations(gangId: string): boolean {
         const gang = this.getGangById(gangId);
         if (!gang) return false;
 

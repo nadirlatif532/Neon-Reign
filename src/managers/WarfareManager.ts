@@ -12,6 +12,7 @@ export interface Operation {
     endTime: number;
     power: number; // Combat power committed
     status: 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
+    memberIds?: number[];
 }
 
 export interface GlobalEvent {
@@ -95,6 +96,10 @@ export class WarfareManager {
         gangs.forEach(g => {
             const gang = rivalGangManager.getGangById(g.id);
             if (gang) {
+                // Check if gang is already busy
+                const isBusy = this.operations.some(op => op.initiatorGangId === gang.id && op.status === 'IN_PROGRESS');
+                if (isBusy) return;
+
                 const move = rivalGangManager.getAiMove(gang, state);
                 if (move) {
                     let cost = 0;
@@ -175,7 +180,7 @@ export class WarfareManager {
         }
     }
 
-    public startOperation(type: OperationType, targetTerritoryId: number, initiatorGangId: string, power: number, duration: number) {
+    public startOperation(type: OperationType, targetTerritoryId: number, initiatorGangId: string, power: number, duration: number, memberIds: number[] = []) {
         const op: Operation = {
             id: Math.random().toString(36).substr(2, 9),
             type,
@@ -184,7 +189,8 @@ export class WarfareManager {
             startTime: Date.now(),
             endTime: Date.now() + duration,
             power,
-            status: 'IN_PROGRESS'
+            status: 'IN_PROGRESS',
+            memberIds // Store involved members
         };
 
         this.operations.push(op);
@@ -200,6 +206,17 @@ export class WarfareManager {
         op.status = 'COMPLETED';
         const state = gameStore.get();
         const territory = state.territories.find(t => t.id === op.targetTerritoryId);
+
+        // Unlock members if any
+        if (op.memberIds && op.memberIds.length > 0) {
+            const updatedMembers = state.members.map(m => {
+                if (op.memberIds!.includes(m.id)) {
+                    return { ...m, status: 'IDLE', currentMission: null };
+                }
+                return m;
+            });
+            gameStore.setKey('members', updatedMembers as any);
+        }
 
         if (!territory) return;
 
@@ -266,7 +283,12 @@ export class WarfareManager {
                 // Massive Heat Increase
                 territory.heat = Math.min(100, territory.heat + 40);
 
-                if (op.power > defensePower) {
+                // Success Logic: Power vs Defense
+                // Add some RNG variance (+/- 10%)
+                const roll = Math.random() * 0.2 + 0.9; // 0.9 to 1.1
+                const effectivePower = op.power * roll;
+
+                if (effectivePower > defensePower) {
                     // Success
                     if (op.initiatorGangId === 'PLAYER') {
                         territory.controlled = true;
@@ -287,6 +309,22 @@ export class WarfareManager {
                     // Fail
                     if (op.initiatorGangId === 'PLAYER') {
                         this.notify(`Assault on ${territory.name} FAILED. Defenses too strong. (Heat +40)`, 'bad');
+                        // Apply injuries if members were involved
+                        if (op.memberIds && op.memberIds.length > 0) {
+                            // Simple injury logic: 30% chance per member
+                            const injuredMembers: number[] = [];
+                            const updatedMembers = state.members.map(m => {
+                                if (op.memberIds!.includes(m.id) && Math.random() < 0.3) {
+                                    injuredMembers.push(m.id);
+                                    return { ...m, health: 0, injured: true, status: 'INJURED' };
+                                }
+                                return m;
+                            });
+                            if (injuredMembers.length > 0) {
+                                gameStore.setKey('members', updatedMembers as any);
+                                this.notify(`${injuredMembers.length} members were injured in the failed assault!`, 'bad');
+                            }
+                        }
                     }
                 }
                 break;
@@ -306,6 +344,41 @@ export class WarfareManager {
         window.dispatchEvent(new CustomEvent('game-event', {
             detail: { message, type }
         }));
+    }
+
+    public initiatePlayerAssault(territoryId: number, memberIds: number[]) {
+        const state = gameStore.get();
+        const territory = state.territories.find(t => t.id === territoryId);
+        if (!territory) return { success: false, message: 'Territory not found' };
+
+        const members = state.members.filter(m => memberIds.includes(m.id));
+
+        // Validate members
+        const unavailable = members.filter(m => m.status !== 'IDLE' || m.injured);
+        if (unavailable.length > 0) return { success: false, message: 'Some members are unavailable' };
+
+        // Calculate Power
+        // Formula: (Sum of Stats * 2) + (Sum of Levels * 5)
+        // ARMORY Upgrade: +5% Power per level
+        let power = members.reduce((sum, m) => {
+            return sum + ((m.stats.cool + m.stats.reflex) * 2) + (m.level * 5);
+        }, 0);
+
+        const armory = state.upgrades.find(u => u.id === 'ARMORY');
+        if (armory) {
+            power *= (1 + (armory.level * 0.05));
+        }
+
+        // Lock members
+        const updatedMembers = state.members.map(m =>
+            memberIds.includes(m.id) ? { ...m, status: 'ON MISSION', currentMission: `ASSAULT: ${territory.name}` } : m
+        );
+        gameStore.setKey('members', updatedMembers as any);
+
+        // Start Operation
+        this.startOperation('ASSAULT', territoryId, 'PLAYER', power, 30000, memberIds); // 30s duration
+
+        return { success: true, message: 'Assault initiated!' };
     }
 
     public getActiveOperations(territoryId?: number) {
