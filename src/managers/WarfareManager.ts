@@ -282,10 +282,22 @@ export class WarfareManager {
                 let defensePower = territory.defense * 10 + (territory.controlled ? 500 : 0); // Base defense
 
                 // Check for active DEFEND operation by player
+                // Check for active DEFEND operation by player
                 const defenseOp = this.operations.find(o => o.targetTerritoryId === territory.id && o.type === 'DEFEND' && o.status === 'IN_PROGRESS');
                 if (defenseOp) {
                     defensePower += defenseOp.power; // Add defender power
                     this.notify(`Defenders repelling assault on ${territory.name}!`, 'neutral');
+                }
+
+                // Ally Support: Check if any allied gangs will help defend
+                if (op.initiatorGangId !== 'PLAYER' && territory.controlled) {
+                    const allies = rivalGangManager.getGangInfo().filter(g => g.relationship >= 80); // Allies have 80+ relationship
+                    if (allies.length > 0) {
+                        // Allies reduce enemy attack power by 20%
+                        const allySupport = op.power * 0.2;
+                        defensePower += allySupport;
+                        this.notify(`Allied gangs are helping defend ${territory.name}! (+${Math.floor(allySupport)} defense)`, 'success');
+                    }
                 }
 
                 // Intel Bonus

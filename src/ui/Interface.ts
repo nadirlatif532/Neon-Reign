@@ -1980,23 +1980,49 @@ export class Interface {
     const modal = document.createElement('div');
     const color = gang.color || '#fff';
 
+    //Determine status based on relationship
+    let status = 'NEUTRAL';
+    let statusColor = '#999';
+    let statusDescription = 'Neutral stance. May attack or leave you alone.';
+
+    if (gang.relationship <= -50) {
+      status = 'WAR';
+      statusColor = '#FF0000';
+      statusDescription = 'Hostile! Will attack your territories frequently.';
+    } else if (gang.relationship >= 80) {
+      status = 'ALLY';
+      statusColor = '#00FF00';
+      statusDescription = 'Allied! Will help defend your territories when under attack.';
+    } else if (gang.relationship >= 30) {
+      status = 'FRIENDLY';
+      statusColor = '#00FFFF';
+      statusDescription = 'Friendly. Less likely to attack, open to diplomacy.';
+    }
+
     modal.className = `bg-cp-bg border-[3px] shadow-[0_0_40px_rgba(0,0,0,0.5)] w-[90%] max-w-[600px] flex flex-col animate-modalSlideIn pointer-events-auto`;
     modal.style.borderColor = color;
     modal.style.boxShadow = `0 0 30px ${color}40`;
 
     modal.innerHTML = `
-        <div class="bg-black/80 border-b-2 p-5 flex justify-between items-center shrink-0" style="border-color: ${color}">
+        <div class="bg-black/ 80 border-b-2 p-5 flex justify-between items-center shrink-0" style="border-color: ${color}">
             <h2 class="text-white m-0 text-3xl font-cyber font-bold uppercase" style="text-shadow: 0 0 10px ${color}">${gang.name}</h2>
             <button id="close-diplomacy" class="bg-transparent border-2 text-white text-3xl w-10 h-10 cursor-pointer flex items-center justify-center font-bold hover:bg-white/10" style="border-color: ${color}">&times;</button>
         </div>
 
         <div class="p-6">
-            <div class="flex items-center gap-4 mb-6 bg-black/30 p-4 border-l-4" style="border-color: ${color}">
+            <div class="flex items-center gap-4 mb-4 bg-black/30 p-4 border-l-4" style="border-color: ${color}">
                 <div class="text-4xl">🤝</div>
                 <div>
                     <div class="text-gray-400 text-sm font-cyber">RELATIONSHIP</div>
                     <div class="text-2xl font-bold text-white">${gang.relationship} / 100</div>
                 </div>
+            </div>
+
+            <div class="bg-black/40 p-4 border-l-4 mb-6" style="border-color: ${statusColor}">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xl font-cyber" style="color: ${statusColor}">STATUS: ${status}</span>
+                </div>
+                <p class="text-gray-300 text-sm leading-relaxed">${statusDescription}</p>
             </div>
 
             <h3 class="text-cp-cyan font-cyber text-lg mb-3">DIPLOMATIC ACTIONS</h3>
@@ -2112,18 +2138,6 @@ export class Interface {
                     <div class="ml-4">• <span class="text-cp-cyan">50%</span> - Income & Building Slots</div>
                     <div class="ml-4">• <span class="text-cp-cyan">75%</span> - Enemy Garrison Strength</div>
                     <div class="ml-4">• <span class="text-cp-cyan">100%</span> - Critical Weakness (+10% combat bonus)</div>
-                </div>
-            </div>
-
-            <!-- Diplomacy -->
-            <div class="bg-black/30 p-4 border-l-4 border-purple-400">
-                <h3 class="text-purple-400 font-cyber text-xl mb-2 uppercase">Diplomacy</h3>
-                <div class="space-y-2 text-gray-300">
-                    <div>Manage relationships with rival gangs in the "Gangs" tab:</div>
-                    <div class="ml-4">• <span class="text-cp-cyan">BRIBE</span> - Improve relations (500€)</div>
-                    <div class="ml-4">• <span class="text-cp-cyan">DEMAND TRIBUTE</span> - Extract money from weaker gangs</div>
-                    <div class="ml-4">• <span class="text-cp-cyan">BUY INTEL</span> - Purchase intelligence on territories (200€)</div>
-                    <div class="ml-4">• <span class="text-cp-cyan">SIGN PACT</span> - Non-aggression agreement (5 min duration)</div>
                 </div>
             </div>
 
