@@ -122,10 +122,10 @@
             }
         }
     </style>
-  <script type="module" crossorigin src="/assets/index-CkMUpVkH.js"></script>
+  <script type="module" crossorigin src="/assets/index-D6YRu4mD.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/phaser-B2I5zoyM.js">
   <link rel="modulepreload" crossorigin href="/assets/vendor-CsYgAULC.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-CZVoWRaY.css">
+  <link rel="stylesheet" crossorigin href="/assets/index-DWepFNn5.css">
 </head>
 
 <body>
@@ -165,45 +165,60 @@
                     <div class="bg-black/40 p-4 border-l-4 border-cp-cyan">
                         <h4 class="text-cp-cyan font-bold font-cyber mb-2">YOUR GOAL</h4>
                         <p class="text-gray-300">Build the most powerful biker gang in Night City. Recruit members,
-                            complete missions, and capture territories.</p>
+                            complete missions, capture territories, and dominate rival gangs.</p>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="bg-black/40 p-3 border border-cp-yellow/30">
-                            <h4 class="text-cp-yellow font-bold font-cyber mb-2">RESOURCES</h4>
-                            <ul class="text-sm text-gray-400 space-y-1">
-                                <li><span class="text-white">€ EDDIES:</span> Cash for hiring &amp; upgrades</li>
-                                <li><span class="text-white">XP:</span> Level up your members</li>
-                                <li><span class="text-white">REP:</span> Global reputation</li>
+                            <h4 class="text-cp-yellow font-bold font-cyber mb-2">🏠 THE HIDEOUT</h4>
+                            <ul class="text-sm text-gray-300 space-y-1">
+                                <li>• Send members on missions for Eddies &amp; Rep</li>
+                                <li>• Upgrade facilities: <span class="text-cp-cyan">Armory</span> (combat power), <span
+                                        class="text-cp-cyan">Medbay</span> (healing), <span
+                                        class="text-cp-cyan">Garage</span> (mission speed), <span
+                                        class="text-cp-cyan">Netroom</span> (intel)</li>
                             </ul>
                         </div>
 
                         <div class="bg-black/40 p-3 border border-cp-red/30">
-                            <h4 class="text-cp-red font-bold font-cyber mb-2">LOCATIONS</h4>
-                            <ul class="text-sm text-gray-400 space-y-1">
-                                <li><span class="text-cp-yellow">Hideout (Yellow):</span> Missions &amp; Management</li>
-                                <li><span class="text-cp-red">Bar (Red):</span> Recruit Mercs</li>
-                                <li><span class="text-cp-cyan">Ripperdoc (Cyan):</span> Heal &amp; Upgrade</li>
+                            <h4 class="text-cp-red font-bold font-cyber mb-2">⚔️ TERRITORY WARFARE</h4>
+                            <ul class="text-sm text-gray-300 space-y-1">
+                                <li>• <span class="text-cp-cyan">Scout</span>: Gather intel on enemy territories</li>
+                                <li>• <span class="text-cp-cyan">Sabotage</span>: Weaken defenses covertly</li>
+                                <li>• <span class="text-cp-cyan">Raid</span>: Attack for quick cash &amp; damage</li>
+                                <li>• <span class="text-cp-yellow">Assault</span>: Full attack to capture territory</li>
+                                <li>• <span class="text-cp-cyan">Fortify</span>: Boost defense</li>
+                                <li>• <span class="text-cp-cyan">Defend</span>: Protect against enemy assaults</li>
+                            </ul>
+                        </div>
+
+                        <div class="bg-black/40 p-3 border border-cp-purple/30">
+                            <h4 class="text-purple-400 font-bold font-cyber mb-2">🤝 DIPLOMACY</h4>
+                            <ul class="text-sm text-gray-300 space-y-1">
+                                <li>• <span class="text-green-400">ALLY</span>: Receive help defending territories</li>
+                                <li>• <span class="text-cp-red">WAR</span>: Frequent attacks on your turf</li>
+                                <li>• Trade intel, demand tribute, or proxy war</li>
+                            </ul>
+                        </div>
+
+                        <div class="bg-black/40 p-3 border border-cp-cyan/30">
+                            <h4 class="text-cp-cyan font-bold font-cyber mb-2">⚡ KEY MECHANICS</h4>
+                            <ul class="text-sm text-gray-300 space-y-1">
+                                <li>• <span class="text-cp-red">Heat</span>: High heat = police raids</li>
+                                <li>• <span class="text-cp-yellow">Random Encounters</span>: Click map icons for rewards
+                                </li>
+                                <li>• <span class="text-purple-400">Global Events</span>: Temporary citywide effects
+                                </li>
+                                <li>• Territory income earned every 60 seconds</li>
                             </ul>
                         </div>
                     </div>
 
-                    <div class="bg-black/40 p-4 border-l-4 border-cp-yellow">
-                        <h4 class="text-cp-yellow font-bold font-cyber mb-2">GAMEPLAY LOOP</h4>
-                        <ol class="list-decimal list-inside text-gray-300 space-y-2">
-                            <li>Visit the <span class="text-cp-red">Bar</span> to hire your first crew member.</li>
-                            <li>Go to <span class="text-cp-cyan">HQ</span> and send them on missions.</li>
-                            <li>Earn Eddies to hire more crew or upgrade them.</li>
-                            <li>Capture territories for passive income!</li>
-                        </ol>
-                    </div>
+                    <button id="tutorial-ok-btn" class="cyber-btn w-full mt-4 text-xl">I'M READY</button>
                 </div>
-
-                <button id="tutorial-ok-btn" class="cyber-btn w-full mt-6 text-xl">I'M READY</button>
             </div>
         </div>
     </div>
-
     <!-- Settings Overlay -->
     <div id="settings-overlay" class="tutorial-hidden">
         <div id="settings-panel" class="bg-black/95 border-2 border-cp-cyan p-6 rounded-lg max-w-md w-full shadow-2xl">
@@ -279,6 +294,15 @@
             if (overlay) {
                 overlay.classList.add('tutorial-hidden');
                 localStorage.setItem('tutorial-seen', 'true');
+
+                // Trigger gang name modal after tutorial closes (only on first run)
+                const gangNameSet = localStorage.getItem('gang-name-set');
+                if (!gangNameSet) {
+                    setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent('show-gang-name-modal'));
+                        localStorage.setItem('gang-name-set', 'true');
+                    }, 500);
+                }
             }
         };
 
