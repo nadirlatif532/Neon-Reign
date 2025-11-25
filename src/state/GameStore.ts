@@ -851,6 +851,27 @@ export const purchaseTerritoryUpgrade = (territoryId: number, upgradeType: Terri
     return { success: true, message: `${upgrade.name} built successfully!` };
 };
 
+export const purchaseHideoutUpgrade = (upgradeId: string): boolean => {
+    const state = gameStore.get();
+    const upgradeIndex = state.upgrades.findIndex(u => u.id === upgradeId);
+    if (upgradeIndex === -1) return false;
+
+    const upgrade = state.upgrades[upgradeIndex];
+    const cost = upgrade.cost * (upgrade.level + 1);
+
+    if (upgrade.level >= upgrade.maxLevel) return false;
+    if (state.eddies < cost) return false;
+
+    addEddies(-cost);
+
+    // Update upgrade level
+    const newUpgrades = [...state.upgrades];
+    newUpgrades[upgradeIndex] = { ...upgrade, level: upgrade.level + 1 };
+    gameStore.setKey('upgrades', newUpgrades);
+
+    return true;
+};
+
 // ==================== SAVE SYSTEM ====================
 
 /**
