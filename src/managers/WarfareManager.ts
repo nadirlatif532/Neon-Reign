@@ -121,7 +121,11 @@ export class WarfareManager {
 
                     if (gang.resources >= cost) {
                         gang.resources -= cost;
-                        this.startOperation(move.type, move.targetId, gang.id, power, duration);
+                        // Stagger start times to prevent all ops starting at exact same second
+                        const delay = Math.floor(Math.random() * 8000);
+                        setTimeout(() => {
+                            this.startOperation(move.type, move.targetId, gang.id, power, duration);
+                        }, delay);
                     }
                 }
             }

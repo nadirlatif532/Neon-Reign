@@ -49,6 +49,7 @@ export class EncounterManager {
             { x: 65, y: 40, width: 25, height: 25 }, // Afterlife (increased from 15x15)
             { x: 25, y: 45, width: 28, height: 28 }, // Hideout/HQ (increased from 18x18)
             { x: 80, y: 60, width: 25, height: 25 }, // Ripperdoc (increased from 15x15)
+            { x: 88, y: 15, width: 20, height: 30 }, // Active Ops panel (top-right)
         ];
 
         // Add active encounters to exclusion zones to prevent overlap
@@ -155,14 +156,35 @@ export class EncounterManager {
         // Check skills
         let success = true;
         if (option.skillCheck) {
+            // Find V (ID 1)
+            const v = members.find(m => m.id === 1);
+            // Fallback to 0 if V is somehow missing (shouldn't happen)
+            const vStats = v ? v.stats : { cool: 0, reflex: 0 };
+
             const statName = option.skillCheck.stat === 'tech' ? 'cool' : option.skillCheck.stat; // Fallback for tech
-            const bestStat = Math.max(...members.map(m => m.stats[statName] || 0));
+            const statValue = vStats[statName] || 0;
+
             const roll = Math.floor(Math.random() * 10) + 1;
-            success = (roll + bestStat) >= option.skillCheck.difficulty;
+
+            // New Formula: (V.stat + d10) >= (difficulty + 5)
+            // This makes a Difficulty 7 check effectively a DC 12 check
+            const targetDC = option.skillCheck.difficulty + 5;
+            success = (roll + statValue) >= targetDC;
         }
 
         // Apply outcome
         const result = option.outcome(success, members);
+
+        // Logic Fix: If there was NO skill check, but the outcome is purely negative (penalties but no rewards),
+        // treat it as a FAILURE so the UI shows red instead of green.
+        if (!option.skillCheck) {
+            const hasPenalties = result.penalties && Object.keys(result.penalties).length > 0;
+            const hasRewards = result.rewards && Object.keys(result.rewards).length > 0;
+
+            if (hasPenalties && !hasRewards) {
+                success = false;
+            }
+        }
 
         if (option.cost) {
             appliedEffects.cost = option.cost;

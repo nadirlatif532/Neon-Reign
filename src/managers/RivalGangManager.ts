@@ -282,14 +282,14 @@ export class RivalGangManager {
         const roll = Math.random();
 
         if (gang.personality === 'aggressive') {
-            if (roll < 0.6 && gang.resources >= 1000) return { type: 'ASSAULT', targetId: target.id };
-            if (roll < 0.9 && gang.resources >= 500) return { type: 'RAID', targetId: target.id };
+            if (roll < 0.2 && gang.resources >= 1000) return { type: 'ASSAULT', targetId: target.id };
+            if (roll < 0.3 && gang.resources >= 500) return { type: 'RAID', targetId: target.id };
         } else if (gang.personality === 'balanced') {
-            if (roll < 0.3 && gang.resources >= 1000) return { type: 'ASSAULT', targetId: target.id };
-            if (roll < 0.7 && gang.resources >= 500) return { type: 'RAID', targetId: target.id };
+            if (roll < 0.1 && gang.resources >= 1000) return { type: 'ASSAULT', targetId: target.id };
+            if (roll < 0.2 && gang.resources >= 500) return { type: 'RAID', targetId: target.id };
         } else {
             // Defensive
-            if (roll < 0.1 && gang.resources >= 1000) return { type: 'ASSAULT', targetId: target.id };
+            if (roll < 0.05 && gang.resources >= 1000) return { type: 'ASSAULT', targetId: target.id };
         }
 
         if (gang.resources >= 50 && Math.random() < 0.3) return { type: 'SCOUT', targetId: target.id };

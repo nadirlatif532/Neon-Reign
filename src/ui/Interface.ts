@@ -100,7 +100,7 @@ export class Interface {
     // Animate and remove
     const animation = el.animate([
       { transform: 'translate(0, 0) scale(1)', opacity: 1 },
-      { transform: 'translate(0, -50px) scale(1.2)', opacity: 0 }
+      { transform: 'translate(0, 50px) scale(1.2)', opacity: 0 }
     ], {
       duration: 1000,
       easing: 'ease-out'
@@ -712,7 +712,8 @@ export class Interface {
         if (state.eddies !== currentEddies && currentEddies !== 0) {
           const diff = state.eddies - currentEddies;
           const rect = eddiesEl.getBoundingClientRect();
-          this.showFloatingText(`${diff > 0 ? '+' : ''}${diff}€`, rect.right + 20, rect.top, diff > 0 ? 'text-cp-yellow' : 'text-cp-red');
+          // Position under the element
+          this.showFloatingText(`${diff > 0 ? '+' : ''}${diff}€`, rect.left, rect.bottom + 5, diff > 0 ? 'text-cp-yellow' : 'text-cp-red');
         }
         eddiesEl.textContent = state.eddies.toLocaleString();
         eddiesEl.parentElement?.classList.remove('animate-pulse-cyber');
@@ -725,7 +726,8 @@ export class Interface {
         if (state.rep !== currentRep && currentRep !== 0) {
           const diff = state.rep - currentRep;
           const rect = repEl.getBoundingClientRect();
-          this.showFloatingText(`${diff > 0 ? '+' : ''}${diff} REP`, rect.right + 20, rect.top, diff > 0 ? 'text-cp-cyan' : 'text-cp-red');
+          // Position under the element
+          this.showFloatingText(`${diff > 0 ? '+' : ''}${diff} REP`, rect.left, rect.bottom + 5, diff > 0 ? 'text-cp-cyan' : 'text-cp-red');
         }
         repEl.textContent = state.rep.toLocaleString();
       }
@@ -836,12 +838,42 @@ export class Interface {
             </p>
 
             <div class="space-y-3">
-                ${encounter.options.map((opt, idx) => `
+                ${encounter.options.map((opt, idx) => {
+      let chanceHtml = '';
+      if (opt.skillCheck) {
+        const state = gameStore.get();
+        const v = state.members.find(m => m.id === 1);
+        const vStats = v ? v.stats : { cool: 0, reflex: 0 };
+        const statName = opt.skillCheck.stat === 'tech' ? 'cool' : opt.skillCheck.stat;
+        const statValue = vStats[statName] || 0;
+
+        // Formula: (V.stat + d10) >= (difficulty + 5)
+        // Chance = (10 - ((difficulty + 5) - V.stat) + 1) * 10
+        const targetDC = opt.skillCheck.difficulty + 5;
+        const neededRoll = targetDC - statValue;
+        // If neededRoll is 1 or less, 100% (actually 100% is impossible on d10 usually, but let's say 100 if roll 1 succeeds)
+        // If neededRoll is 11 or more, 0%
+        const winningRolls = Math.max(0, Math.min(10, 11 - neededRoll));
+        const chance = winningRolls * 10;
+
+        let colorClass = 'text-cp-red';
+        if (chance >= 70) colorClass = 'text-green-500';
+        else if (chance >= 40) colorClass = 'text-yellow-500';
+
+        const statLabel = opt.skillCheck.stat === 'tech' ? 'COOL (TECH)' : opt.skillCheck.stat.toUpperCase();
+
+        chanceHtml = `<div class="text-xs mt-1 font-mono">
+                            <span class="text-gray-400">V'S ${statLabel} CHECK:</span> 
+                            <span class="${colorClass} font-bold">${chance}% CHANCE</span>
+                        </div>`;
+      }
+
+      return `
                     <button class="encounter-opt-btn w-full text-left p-4 border-2 border-gray-600 hover:border-cp-yellow hover:bg-cp-yellow/10 transition-all group relative overflow-hidden" data-index="${idx}">
                         <div class="font-bold text-cp-yellow text-lg group-hover:translate-x-2 transition-transform">${opt.text}</div>
-                        ${opt.skillCheck ? `<div class="text-xs text-cp-cyan mt-1">CHECK: ${opt.skillCheck.stat.toUpperCase()} ${opt.skillCheck.difficulty}+</div>` : ''}
+                        ${chanceHtml}
                     </button>
-                `).join('')}
+                `}).join('')}
             </div>
         </div>
       `;
@@ -911,7 +943,7 @@ export class Interface {
           effectsList.push(`<div class="flex items-center gap-2 text-orange-500"><span class="text-2xl">💸</span> <span>-${effects.penalties.eddies}€ LOST</span></div>`);
         }
         if (effects.penalties.rep) {
-          effectsList.push(`<div class="flex items-center gap-2 text-orange-500"><span class="text-2xl">📉</span> <span>${effects.penalties.rep} REP</span></div>`);
+          effectsList.push(`<div class="flex items-center gap-2 text-orange-500"><span class="text-2xl">📉</span> <span>-${Math.abs(effects.penalties.rep)} REP</span></div>`);
         }
         if (effects.penalties.health) {
           const target = effects.penalties.targetName ? ` (${effects.penalties.targetName})` : '';
